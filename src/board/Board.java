@@ -6,11 +6,18 @@ import javax.swing.*;
 import java.awt.*;
 
 public class Board extends JPanel{
-    // Stores squares
-    public BoardSquare[][] m_boardSquares;
+    /** 8x8 matrix that scores board squares */
+    protected final BoardSquare[][] m_boardSquares;
+    /** Handles game state, moves and position evaluation */
     private final GameLogicController m_logicController;
-    private final String m_standardFeNotation = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+    /** Position that will be */
+    //    private final String m_standardFeNotation = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+    private final String m_standardFeNotation = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8";
 
+    /**
+     * Creates a board with given <code>FE notation</code>.
+     * Adds timers and logic controller to a board
+     */
     public Board(String feNotation){
         JPanel m_boardPanel = new JPanel();
 
@@ -135,7 +142,8 @@ public class Board extends JPanel{
         m_logicController.startLogic(timePerSide, incrementPerMove, GameLogicController.GameType.MULTI);
     }
 
-    public void createOnePlayerGame(int timePerSide, int incrementPerMove, PieceAttributes.Color playerColor){
+    public void createOnePlayerGame(int timePerSide, int incrementPerMove, PieceAttributes.Color playerColor,
+                                    int depth, int maxThinkingTime){
         // Remove pieces from the previous game
         for(int i = 0; i < 8; ++i){
             for(int j = 0; j < 8; ++j){
@@ -144,6 +152,26 @@ public class Board extends JPanel{
         }
         readFromFENotation(m_standardFeNotation);
         m_logicController.setPlayerColor(playerColor);
+        m_logicController.setEngineAttribs(depth, maxThinkingTime);
         m_logicController.startLogic(timePerSide, incrementPerMove, GameLogicController.GameType.SINGLE);
+    }
+
+    @Override
+    public String toString(){
+        StringBuilder notation = new StringBuilder();
+        for(int i = 0; i < 8; ++i){
+            for(int j = 0; j < 8; ++j){
+                Piece piece = m_boardSquares[i][j].getPiece();
+                if(piece != null){
+                    char ch = piece.getType().getCharacter();
+                    if(piece.getColor() == PieceAttributes.Color.BLACK)
+                        ch = Character.toLowerCase(ch);
+                    notation.append(ch).append(" ");
+                }else
+                    notation.append("- ");
+            }
+            notation.append('\n');
+        }
+        return notation.toString();
     }
 }

@@ -1,4 +1,4 @@
-package board;
+package App;
 
 import javax.swing.*;
 import java.awt.*;
@@ -65,6 +65,10 @@ public class Timer{
         m_miliseconds = 0;
         m_minutes = newStartValue;
         m_hasFinished = false;
+
+        m_minutesString = String.format("%02d", m_minutes);
+        m_secondsString = String.format("%02d", m_seconds);
+        m_timeLabel.setText(m_minutesString + ":" + m_secondsString);
     }
 
     public void start(){

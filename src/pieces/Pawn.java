@@ -5,6 +5,8 @@ import board.BoardSquare;
 import java.util.ArrayList;
 
 public class Pawn extends Piece{
+    private boolean m_hasDoubleMoved = false;
+
     public Pawn(PieceAttributes attrib, Pos pos){
         super(attrib, pos);
         m_isFirstMove = true;
@@ -12,6 +14,36 @@ public class Pawn extends Piece{
 
     /** Used when pawn gets to the edge of a board and promotes **/
     public void setNewType(pieces.PieceAttributes.Type type){m_attrib.setType(type);}
+
+    public boolean isEnpassantPossible(){return m_hasDoubleMoved;}
+
+    public void setEnpassantImpossible(){m_hasDoubleMoved = false;}
+
+    public void setFirstMove(boolean firstMove){
+        m_isFirstMove = firstMove;
+        m_hasDoubleMoved = false;
+    }
+
+    @Override
+    public void movePiece(int row, int col){
+        m_hasDoubleMoved = Math.abs(row - m_pos.row()) == 2;
+        this.m_pos = new Pos(row, col);
+        ++m_moveCount;
+        m_isFirstMove = false;
+    }
+
+    @Override
+    public void unmakeMove(int row, int col){
+        this.m_pos = new Pos(row, col);
+        --m_moveCount;
+        if(m_moveCount == 0){
+            m_isFirstMove = true;
+            m_hasDoubleMoved = false;
+        }else if(m_moveCount == 1){
+            m_isFirstMove = false;
+            m_hasDoubleMoved = true;
+        }
+    }
 
     @Override
     public ArrayList<Pos> calculatePossibleMoves(BoardSquare[][] boardSquares){
@@ -41,11 +73,34 @@ public class Pawn extends Piece{
                 possibleMoves.add(new Pos(m_pos.row() + m_y, m_pos.col() + 1));
             }
         }
+
+        // Check if enpassant is possible
+        if(m_pos.row() + m_y >= 0 && m_pos.row() + m_y < 8){
+            if(m_pos.col() - 1 >= 0){
+                Piece piece = boardSquares[m_pos.row()][m_pos.col() - 1].getPiece();
+                // Check if there is opposite color pawn on the same row and column - 1 that has just moved
+                if(piece != null && piece.getColor() != getColor() && piece.getType() == PieceAttributes.Type.PAWN &&
+                   ((Pawn) piece).isEnpassantPossible()){
+
+                    possibleMoves.add(new Pos(m_pos.row() + m_y, m_pos.col() - 1));
+                }
+            }
+            // Check if there is opposite color pawn on the same row and column + 1 that has just moved
+            if(m_pos.col() + 1 < 8){
+                Piece piece = boardSquares[m_pos.row()][m_pos.col() + 1].getPiece();
+                // Check if there is opposite color pawn on the same row and column - 1 that has just moved
+                if(piece != null && piece.getColor() != getColor() && piece.getType() == PieceAttributes.Type.PAWN &&
+                   ((Pawn) piece).isEnpassantPossible()){
+
+                    possibleMoves.add(new Pos(m_pos.row() + m_y, m_pos.col() + 1));
+                }
+            }
+        }
         return possibleMoves;
     }
 
     /** Returns diagonally forward one square to the left and right **/
-    public ArrayList<Pos> calculateAttackingMoves(BoardSquare[][] boardSquares){
+    public ArrayList<Pos> calculateAttackingMoves(){
         ArrayList<Pos> possibleMoves = new ArrayList<>();
         int m_y = m_attrib.getColor().getValue();
         if(m_pos.row() + m_y >= 0 && m_pos.row() + m_y < 8 && m_pos.col() - 1 >= 0)
@@ -53,6 +108,7 @@ public class Pawn extends Piece{
 
         if(m_pos.row() + m_y >= 0 && m_pos.row() + m_y < 8 && m_pos.col() + 1 < 8)
             possibleMoves.add(new Pos(m_pos.row() + m_y, m_pos.col() + 1));
+
         return possibleMoves;
     }
 }

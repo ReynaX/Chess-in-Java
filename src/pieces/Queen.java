@@ -15,61 +15,51 @@ public class Queen extends Piece{
         ArrayList<Pos> possibleMoves = new ArrayList<>();
 
         // Check moves diagonally(same as in bishop implementation)
-        ArrayList<Pos> pairs = new ArrayList<>(Arrays.asList(new Pos(-1, -1), new Pos(-1, 1),
-                                                             new Pos(1, -1), new Pos(1, 1)));
-        int pairNumber = 0;
-        while(pairNumber < 4){
+        int[][] offsets = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
+        for(int[] offset : offsets){
             int squareCount = 1;
-            while(m_pos.row() + pairs.get(pairNumber).row() * squareCount >= 0 &&
-                  m_pos.row() + pairs.get(pairNumber).row() * squareCount < 8 &&
-                  m_pos.col() + pairs.get(pairNumber).col() * squareCount >= 0 &&
-                  m_pos.col() + pairs.get(pairNumber).col() * squareCount < 8){
+            // Traverse through possible squares until piece is encountered or there is no more squares
+            while(m_pos.row() + offset[0] * squareCount >= 0 && m_pos.row() + offset[0] * squareCount <= 7 &&
+                  m_pos.col() + offset[1] * squareCount >= 0 && m_pos.col() + offset[1] * squareCount <= 7){
 
-                Piece piece = boardSquares[m_pos.row() + pairs.get(pairNumber).row() * squareCount]
-                        [m_pos.col() + pairs.get(pairNumber).col() * squareCount].getPiece();
+                Piece piece = boardSquares[m_pos.row() + offset[0] * squareCount]
+                        [m_pos.col() + offset[1] * squareCount].getPiece();
+                // Check if encountered piece can be captured
                 if(piece != null){
                     if(piece.getColor() != this.getColor()){
-                        possibleMoves.add(new Pos(
-                                m_pos.row() + pairs.get(pairNumber).row() * squareCount,
-                                m_pos.col() + pairs.get(pairNumber).col() * squareCount));
+                        possibleMoves.add(new Pos(m_pos.row() + offset[0] * squareCount,
+                                                  m_pos.col() + offset[1] * squareCount));
                     }
                     break;
                 }
-                possibleMoves.add(new Pos(
-                        m_pos.row() + pairs.get(pairNumber).row() * squareCount,
-                        m_pos.col() + pairs.get(pairNumber).col() * squareCount));
+                possibleMoves.add(new Pos(m_pos.row() + offset[0] * squareCount,
+                                          m_pos.col() + offset[1] * squareCount));
                 ++squareCount;
             }
-            ++pairNumber;
         }
-        // Check moves horizontally and vertically (same as in rook implementation)
-        pairs = new ArrayList<>(Arrays.asList(
-                new Pos(0, -1), new Pos(0, 1),
-                new Pos(-1, 0), new Pos(1, 0)));
 
-        pairNumber = 0;
-        while(pairNumber < 4){
+        // Check moves horizontally and vertically (same as in rook implementation)
+        offsets = new int[][]{{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+
+        for(int[] offset : offsets){
             int squareCount = 1;
-            while(m_pos.row() + pairs.get(pairNumber).row() * squareCount >= 0 && m_pos.row() + pairs.get(pairNumber).row() * squareCount < 8 &&
-                  m_pos.col() + pairs.get(pairNumber).col() * squareCount >= 0 && m_pos.col() + pairs.get(pairNumber).col() * squareCount < 8){
-                Piece piece = boardSquares[m_pos.row() + pairs.get(pairNumber).row() * squareCount]
-                        [m_pos.col() + pairs.get(pairNumber).col() * squareCount].getPiece();
+            // Traverse through possible squares until piece is encountered or there is no more squares
+            while(m_pos.row() + offset[0] * squareCount >= 0 && m_pos.row() + offset[0] * squareCount < 8 &&
+                  m_pos.col() + offset[1] * squareCount >= 0 && m_pos.col() + offset[1] * squareCount < 8){
+                Piece piece = boardSquares[m_pos.row() + offset[0] * squareCount]
+                        [m_pos.col() + offset[1] * squareCount].getPiece();
+                // Check if encountered piece can be captured
                 if(piece != null){
                     if(piece.getColor() != this.getColor()){
-                        possibleMoves.add(new Pos(
-                                m_pos.row() + pairs.get(pairNumber).row() * squareCount,
-                                m_pos.col() + pairs.get(pairNumber).col() * squareCount
-                        ));
+                        possibleMoves.add(new Pos(m_pos.row() + offset[0] * squareCount,
+                                                  m_pos.col() + offset[1] * squareCount));
                     }
                     break;
                 }
-                possibleMoves.add(new Pos(
-                        m_pos.row() + pairs.get(pairNumber).row() * squareCount,
-                        m_pos.col() + pairs.get(pairNumber).col() * squareCount
-                ));
+                possibleMoves.add(new Pos(m_pos.row() + offset[0] * squareCount,
+                                          m_pos.col() + offset[1] * squareCount));
                 ++squareCount;
             }
-            ++pairNumber;
         }
         return possibleMoves;
     }

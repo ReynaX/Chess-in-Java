@@ -52,10 +52,114 @@ public class King extends Piece{
         return possibleMoves;
     }
 
+    public boolean isKingSafe(BoardSquare[][] boardSquares){
+        int row = m_pos.row(), col = m_pos.col();
+        // Search for diagonal attacks
+        for(int r = -1; r <= 1; r += 2){
+            for(int c = -1; c <= 1; c += 2){
+                int squareCount = 1;
+                while(row + squareCount * r >= 0 && row + squareCount * r < 8 &&
+                      col + squareCount * c >= 0 && col + squareCount * c < 8){
+                    Piece piece = boardSquares[row + squareCount * r][col + squareCount * c].getPiece();
+                    if(piece != null){
+                        if(piece.getColor() != this.getColor() &&
+                           (piece.getType() == PieceAttributes.Type.BISHOP || piece.getType() == PieceAttributes.Type.QUEEN)){
+                            return false;
+                        }
+                        break;
+                    }
+                    ++squareCount;
+                }
+            }
+        }
+
+        // Search for horizontal and vertical attacks
+        for(int r = -1; r <= 1; r += 2){
+            int squareCount = 1;
+            // Check vertically
+            while(row + squareCount * r >= 0 && row + squareCount * r < 8){
+                Piece piece = boardSquares[row + squareCount * r][col].getPiece();
+                if(piece != null){
+                    if(piece.getColor() != m_attrib.getColor() &&
+                       (piece.getType() == PieceAttributes.Type.ROOK || piece.getType() == PieceAttributes.Type.QUEEN)){
+                        return false;
+                    }
+                    break;
+                }
+                ++squareCount;
+            }
+            squareCount = 1;
+            // Check horizontally
+            while(col + squareCount * r >= 0 && col + squareCount * r < 8){
+                Piece piece = boardSquares[row][col + squareCount * r].getPiece();
+                if(piece != null){
+                    if(piece.getColor() != m_attrib.getColor() &&
+                       (piece.getType() == PieceAttributes.Type.ROOK || piece.getType() == PieceAttributes.Type.QUEEN)){
+                        return false;
+                    }
+                    break;
+                }
+                ++squareCount;
+            }
+        }
+
+        // Search for knight attacks
+        for(int r = -1; r <= 1; r += 2){
+            for(int c = -1; c <= 1; c += 2){
+                if(row + r * 2 >= 0 && row + r * 2 < 8 && col + c >= 0 && col + c < 8){
+                    Piece piece = boardSquares[row + r * 2][col + c].getPiece();
+                    if(piece != null && piece.getColor() != m_attrib.getColor() &&
+                       piece.getType() == PieceAttributes.Type.KNIGHT){
+                        return false;
+                    }
+                }
+
+                if(row + r >= 0 && row + r < 8 && col + c * 2 >= 0 && col + c * 2 < 8){
+                    Piece piece = boardSquares[row + r][col + c * 2].getPiece();
+                    if(piece != null && piece.getColor() != m_attrib.getColor() &&
+                       piece.getType() == PieceAttributes.Type.KNIGHT){
+                        return false;
+                    }
+                }
+            }
+        }
+
+        // Search for pawn attacks
+        int pawnAttackDirection = getColor().getValue() * (-1);
+        if(row + pawnAttackDirection >= 0 && row + pawnAttackDirection < 8){
+            if(col - 1 >= 0){
+                Piece piece = boardSquares[row + pawnAttackDirection][col - 1].getPiece();
+                if(piece != null && piece.getColor() != m_attrib.getColor() &&
+                   piece.getType() == PieceAttributes.Type.PAWN){
+                    return false;
+                }
+            }
+
+            if(col + 1 < 8){
+                Piece piece = boardSquares[row + pawnAttackDirection][col + 1].getPiece();
+                if(piece != null && piece.getColor() != m_attrib.getColor() &&
+                   piece.getType() == PieceAttributes.Type.PAWN){
+                    return false;
+                }
+            }
+        }
+
+        for(int r = -1; r <= 1; ++r){
+            for(int c = -1; c <= 1; ++c){
+                if(row + r >= 0 && row + r < 8 && col + c >= 0 && col + c < 8){
+                    Piece piece = boardSquares[row + r][col + c].getPiece();
+                    if(piece != null && piece.getColor() != m_attrib.getColor() &&
+                       piece.getType() == PieceAttributes.Type.KING)
+                        return false;
+                }
+            }
+        }
+        return true;
+    }
+
     /** Returns matrix where elements indicate how many opposite color pieces cover given square **/
     public int[][] getAllCoveredSquares(BoardSquare[][] boardSquares){
         int[][] coveredSquares = new int[8][8];
-        Piece attackingPiece = null;
 
         boardSquares[m_pos.row()][m_pos.col()].setPiece(null);
 
@@ -70,7 +174,7 @@ public class King extends Piece{
 
                 ArrayList<Pos> possibleMoves;
                 if(tmpPiece.getType() == PieceAttributes.Type.PAWN)
-                    possibleMoves = ((Pawn) tmpPiece).calculateAttackingMoves(boardSquares);
+                    possibleMoves = ((Pawn) tmpPiece).calculateAttackingMoves();
                 else if(tmpPiece.getType() == PieceAttributes.Type.KING)
                     possibleMoves = ((King) tmpPiece).calculateAttackingMoves(boardSquares);
                 else possibleMoves = tmpPiece.calculatePossibleMoves(boardSquares);

@@ -14,32 +14,27 @@ public class Bishop extends Piece{
     public ArrayList<Pos> calculatePossibleMoves(BoardSquare[][] boardSquares){
         ArrayList<Pos> possibleMoves = new ArrayList<>();
 
-        ArrayList<Pos> pairs = new ArrayList<>(Arrays.asList(new Pos(-1, -1), new Pos(-1, 1),
-                                                             new Pos(1, -1), new Pos(1, 1)));
-        int pairNumber = 0;
-        while(pairNumber < 4){
+        int[][] offsets = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
+        for(int[] offset : offsets){
             int squareCount = 1;
-            while(m_pos.row() + pairs.get(pairNumber).row() * squareCount >= 0 &&
-                  m_pos.row() + pairs.get(pairNumber).row() * squareCount <= 7 &&
-                  m_pos.col() + pairs.get(pairNumber).col() * squareCount >= 0 &&
-                  m_pos.col() + pairs.get(pairNumber).col() * squareCount <= 7){
+            // Traverse through possible squares until piece is encountered or there is no more squares
+            while(m_pos.row() + offset[0] * squareCount >= 0 && m_pos.row() + offset[0] * squareCount <= 7 &&
+                  m_pos.col() + offset[1] * squareCount >= 0 && m_pos.col() + offset[1] * squareCount <= 7){
 
-                Piece piece = boardSquares[m_pos.row() + pairs.get(pairNumber).row() * squareCount]
-                        [m_pos.col() + pairs.get(pairNumber).col() * squareCount].getPiece();
+                Piece piece = boardSquares[m_pos.row() + offset[0] * squareCount]
+                        [m_pos.col() + offset[1] * squareCount].getPiece();
+                // Check if encountered piece can be captured
                 if(piece != null){
                     if(piece.getColor() != this.getColor()){
-                        possibleMoves.add(new Pos(
-                                m_pos.row() + pairs.get(pairNumber).row() * squareCount,
-                                m_pos.col() + pairs.get(pairNumber).col() * squareCount));
+                        possibleMoves.add(new Pos(m_pos.row() + offset[0] * squareCount,
+                                                  m_pos.col() + offset[1] * squareCount));
                     }
                     break;
                 }
-                possibleMoves.add(new Pos(
-                        m_pos.row() + pairs.get(pairNumber).row() * squareCount,
-                        m_pos.col() + pairs.get(pairNumber).col() * squareCount));
+                possibleMoves.add(new Pos(m_pos.row() + offset[0] * squareCount,
+                                          m_pos.col() + offset[1] * squareCount));
                 ++squareCount;
             }
-            ++pairNumber;
         }
 
         return possibleMoves;

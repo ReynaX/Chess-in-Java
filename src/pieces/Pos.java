@@ -24,6 +24,11 @@ public class Pos{
         return this.row() == pos.row() && this.col() == pos.col();
     }
 
+    @Override
+    public String toString(){
+        return "Pos(" + m_row + ", " + m_col + '}';
+    }
+
     private int m_row;
     private int m_col;
 }

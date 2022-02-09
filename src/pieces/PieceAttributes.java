@@ -21,7 +21,7 @@ public class PieceAttributes{
 
     public enum Type{
         KING(900, 'K'), QUEEN(90, 'Q'), ROOK(50, 'R'),
-        BISHOP(30, 'B'), KNIGHT(30, 'N'), PAWN(10, 'p');
+        BISHOP(30, 'B'), KNIGHT(30, 'N'), PAWN(10, 'P');
 
         private final int m_value;
         private final char m_charValue;

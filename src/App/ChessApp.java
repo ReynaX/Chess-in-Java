@@ -13,12 +13,13 @@ public class ChessApp extends JPanel{
     private final static String SINGLE_PLAYER = "Play with a computer";
     private final static String MULTI_PLAYER = "Play with a friend";
     private final static String ANALYZE_GAME = "Analyze game";
-    private final Board m_board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
     private static final ChessMoveOrderModel m_moveOrderModel = new ChessMoveOrderModel();
 
-    public JButton m_analyzeButton;
-    public JButton m_playWithFriendButton;
-    public JButton m_singlePlayerMode;
+    private static final Board m_board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+
+    public static JButton m_analyzeButton;
+    public static JButton m_playWithFriendButton;
+    public static JButton m_singlePlayerMode;
 
     public ChessApp(){
         this.setLayout(new GridBagLayout());
@@ -71,7 +72,7 @@ public class ChessApp extends JPanel{
         addComponent(this, menuPanel, 2, 0, 1, 1, GridBagConstraints.EAST, GridBagConstraints.BOTH);
     }
 
-    private JButton createButton(String text, Color bgColor){
+    private static JButton createButton(String text, Color bgColor){
         JButton newButton = new JButton(text);
         newButton.setBackground(bgColor);
         newButton.setForeground(Color.white);
@@ -83,7 +84,7 @@ public class ChessApp extends JPanel{
     }
 
     public static void addNewMove(String moveNotation, PieceAttributes.Color colorMoved){
-        System.out.println(moveNotation);
+        //System.out.println(moveNotation);
         switch(colorMoved){
             case WHITE -> {
                 m_moveOrderModel.addRow();
@@ -107,7 +108,7 @@ public class ChessApp extends JPanel{
 
     public Board getBoard(){return m_board;}
 
-    ActionListener actionListener = e -> {
+    private static final ActionListener actionListener = e -> {
 
         if(e.getSource() instanceof JButton){
             JDialog newDialog = null;
@@ -127,7 +128,8 @@ public class ChessApp extends JPanel{
                 PlayWithComputerDialog.Result result = ((PlayWithComputerDialog) newDialog).showDialog();
                 if(result.getTimePerSide() != -1){
                     m_moveOrderModel.setRowCount(0);
-                    m_board.createOnePlayerGame(result.getTimePerSide(), result.getIncrementPerMove(), result.getPlayerColor());
+                    m_board.createOnePlayerGame(result.getTimePerSide(), result.getIncrementPerMove(),
+                                                result.getPlayerColor(), result.getDepth(), result.getMaxThinkingTime());
                 }
             }
         }

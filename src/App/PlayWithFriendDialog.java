@@ -7,7 +7,6 @@ public class PlayWithFriendDialog extends JDialog{
     private JPanel contentPane;
     private JButton buttonOK;
     private JButton buttonCancel;
-    private JPanel timePanel;
     private JLabel minutesPerSideLabel;
     private JSlider playTimeSlider;
     private JLabel incrementInSecondsLabel;

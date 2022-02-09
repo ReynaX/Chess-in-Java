@@ -6,6 +6,7 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class PlayWithComputerDialog extends JDialog{
@@ -19,6 +20,10 @@ public class PlayWithComputerDialog extends JDialog{
     private JSlider incrementSlider;
     private JComboBox timeControlComboBox;
     private JPanel colorPanel;
+    private JSlider depthSlider;
+    private JSlider maxTimeSlider;
+    private JLabel maxTimeLabel;
+    private JLabel depthLabel;
     private JToggleButton whiteColorButton;
     private JToggleButton blackColorButton;
     private JToggleButton randomColorButton;
@@ -29,6 +34,7 @@ public class PlayWithComputerDialog extends JDialog{
         setModal(true);
         getRootPane().setDefaultButton(buttonOK);
         addColorButtonsToMenu();
+
         setResizable(false);
         setTitle("Create a game");
 
@@ -64,6 +70,17 @@ public class PlayWithComputerDialog extends JDialog{
             int value = incrementSlider.getValue();
             incrementInSecondsLabel.setText("Increment in seconds: " + value);
         });
+
+        depthSlider.addChangeListener(e -> {
+            int value = depthSlider.getValue();
+            depthLabel.setText("Depth: " + value);
+        });
+
+        maxTimeSlider.addChangeListener(e -> {
+            int value = maxTimeSlider.getValue();
+            maxTimeLabel.setText("Max thinking time in seconds: " + value);
+        });
+
         timePanel.setVisible(false);
     }
 
@@ -106,6 +123,7 @@ public class PlayWithComputerDialog extends JDialog{
         randomColorButton.setSelected(true);
     }
 
+
     private void onOK(){
         // Check if there is a time control
         int playTimeValue = 0, incrementValue = 0;
@@ -113,19 +131,28 @@ public class PlayWithComputerDialog extends JDialog{
             playTimeValue = playTimeSlider.getValue();
             incrementValue = incrementSlider.getValue();
         }
+
+        int depth = depthSlider.getValue();
+        int maxThinkingTime = maxTimeSlider.getValue();
         // Get selected color value, if no color is selected choose randomly
-        if(whiteColorButton.isSelected())
-            m_result = new Result(playTimeValue, incrementValue, PieceAttributes.Color.WHITE);
-        else if(blackColorButton.isSelected())
-            m_result = new Result(playTimeValue, incrementValue, PieceAttributes.Color.BLACK);
+        if(whiteColorButton.isSelected()){
+            m_result = new Result(playTimeValue, incrementValue, PieceAttributes.Color.WHITE,
+                                  depth, maxThinkingTime);
+        }else if(blackColorButton.isSelected())
+            m_result = new Result(playTimeValue, incrementValue, PieceAttributes.Color.BLACK,
+                                  depth, maxThinkingTime);
         else
-            m_result = new Result(playTimeValue, incrementValue, PieceAttributes.Color.randomColor());
+            m_result = new Result(playTimeValue, incrementValue, PieceAttributes.Color.randomColor(),
+                                  depth, maxThinkingTime);
         dispose();
     }
 
     private void onCancel(){
+        String stringNumber = null;
+
         // add your code here if necessary
-        m_result = new Result(-1, -1, PieceAttributes.Color.BLACK);
+        m_result = new Result(-1, -1, PieceAttributes.Color.BLACK,
+                              -1, -1);
         dispose();
     }
 
@@ -139,18 +166,29 @@ public class PlayWithComputerDialog extends JDialog{
         private final int m_timePerSide;
         private final int m_incrementPerMove;
         private final PieceAttributes.Color m_playerColor;
+        private final int m_depth;
+        private final int m_maxThinkingTime;
 
-        public Result(int timePerSide, int incrementPerMove, PieceAttributes.Color playerColor){
+        public Result(int timePerSide, int incrementPerMove, PieceAttributes.Color playerColor, int depth,
+                      int maxThinkingTime){
             m_timePerSide = timePerSide;
             m_incrementPerMove = incrementPerMove;
             m_playerColor = playerColor;
+            m_depth = depth;
+            m_maxThinkingTime = maxThinkingTime;
         }
+
 
         public int getTimePerSide(){return m_timePerSide;}
 
         public int getIncrementPerMove(){return m_incrementPerMove;}
 
         public PieceAttributes.Color getPlayerColor(){return m_playerColor;}
+
+        public int getDepth(){return m_depth;}
+
+        public int getMaxThinkingTime(){return m_maxThinkingTime;}
+
     }
 
 }
