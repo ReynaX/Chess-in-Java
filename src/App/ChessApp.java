@@ -1,25 +1,31 @@
 package App;
 
 import board.Board;
+import pieces.Piece;
 import pieces.PieceAttributes;
 
 import javax.swing.*;
 import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.io.*;
+import java.net.URL;
+import java.util.Objects;
 
 
 public class ChessApp extends JPanel{
     private final static String SINGLE_PLAYER = "Play with a computer";
     private final static String MULTI_PLAYER = "Play with a friend";
-    private final static String ANALYZE_GAME = "Analyze game";
+    private final static String READ_FROM = "Read game state from file";
+    private final static String SAVE_TO = "Save gamestate to fil";
     private static final ChessMoveOrderModel m_moveOrderModel = new ChessMoveOrderModel();
+    private static final String feNotation = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    private static final Board m_board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-    private static final Board m_board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
-
-    public static JButton m_analyzeButton;
     public static JButton m_playWithFriendButton;
     public static JButton m_singlePlayerMode;
+    public static JButton m_saveGameButton;
+    public static JButton m_readGameButton;
 
     public ChessApp(){
         this.setLayout(new GridBagLayout());
@@ -30,24 +36,34 @@ public class ChessApp extends JPanel{
     }
 
     public void createMainMenu(){
-        m_analyzeButton = createButton(ANALYZE_GAME, new Color(0x2f2f2f));
         m_singlePlayerMode = createButton(SINGLE_PLAYER, new Color(0x2f2f2f));
         m_playWithFriendButton = createButton(MULTI_PLAYER, new Color(0x2f2f2f));
+        m_saveGameButton = createButton(SAVE_TO, new Color(0x2f2f2f));
+        m_readGameButton = createButton(READ_FROM, new Color(0x2f2f2f));
 
         JPanel menuPanel = new JPanel(new BorderLayout());
-        JPanel buttonPanel = new JPanel(new GridLayout(3, 1));
+        JPanel buttonPanel = new JPanel(new GridLayout(4, 1));
         JPanel moveOrderPanel = new JPanel();
 
         buttonPanel.add(m_singlePlayerMode);
         buttonPanel.add(m_playWithFriendButton);
-        buttonPanel.add(m_analyzeButton);
+        buttonPanel.add(m_saveGameButton);
+        buttonPanel.add(m_readGameButton);
 
         JTable moveOrderTable = new JTable();
-        TableColumn column = null;
-
+        moveOrderTable.setTableHeader(null);
         moveOrderTable.setIntercellSpacing(new Dimension(0, 0));
         moveOrderTable.setShowGrid(false);
         moveOrderTable.setModel(m_moveOrderModel);
+
+        TableColumn column;
+        JScrollPane scrollPane = new JScrollPane(moveOrderTable);
+        scrollPane.setPreferredSize(new Dimension(175, 500));
+        scrollPane.getViewport().setBackground(new Color(0x312e2b));
+        scrollPane.getViewport().setForeground(new Color(0x312e2b));
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+
 
         for(int i = 0; i < 3; ++i){
             column = moveOrderTable.getColumnModel().getColumn(i);
@@ -60,7 +76,7 @@ public class ChessApp extends JPanel{
         moveOrderTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
         moveOrderTable.setRowSelectionAllowed(false);
 
-        moveOrderPanel.add(moveOrderTable);
+        moveOrderPanel.add(scrollPane);
         menuPanel.add(buttonPanel, BorderLayout.PAGE_START);
         menuPanel.add(moveOrderPanel, BorderLayout.WEST);
         menuPanel.setBackground(new Color(0x312e2b));
@@ -115,6 +131,12 @@ public class ChessApp extends JPanel{
             switch(((JButton) e.getSource()).getText()){
                 case MULTI_PLAYER -> newDialog = new PlayWithFriendDialog();
                 case SINGLE_PLAYER -> newDialog = new PlayWithComputerDialog();
+                //case READ_FROM -> readFromFile();
+                // return;
+                case SAVE_TO -> {
+                    saveToFile();
+                    return;
+                }
             }
             assert newDialog != null;
             newDialog.pack();
@@ -129,9 +151,30 @@ public class ChessApp extends JPanel{
                 if(result.getTimePerSide() != -1){
                     m_moveOrderModel.setRowCount(0);
                     m_board.createOnePlayerGame(result.getTimePerSide(), result.getIncrementPerMove(),
-                                                result.getPlayerColor(), result.getDepth(), result.getMaxThinkingTime());
+                                                result.getPlayerColor(), result.getDepth());
                 }
             }
         }
     };
+
+    private static void saveToFile(){
+        PrintWriter writer = null;
+        try{
+            writer =
+                    new PrintWriter(
+                            Objects.requireNonNull(ChessApp.class.getResource("/game_saved.txt")).getPath());
+            String notation = m_board.generateFENotation();
+            writer.print(notation);
+            JOptionPane.showMessageDialog(null, "Game state saved to: " +
+                                                ChessApp.class.getResource("/game_saved.txt").getPath(), "Save",
+                                          JOptionPane.INFORMATION_MESSAGE);
+        }catch(FileNotFoundException e){
+            JOptionPane.showMessageDialog(null, "File not found", "Error",
+                                          JOptionPane.ERROR_MESSAGE);
+        }finally{
+            if(writer != null)
+                writer.close();
+        }
+    }
+    
 }

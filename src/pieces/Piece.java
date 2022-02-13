@@ -19,10 +19,34 @@ public abstract class Piece{
     public Piece(PieceAttributes attrib, Pos pos){
         m_attrib = attrib;
         m_pos = pos;
-        m_isFirstMove = true;
+        m_isFirstMove = isFirstMove();
 
         if(!assignIcon()){
             System.exit(1);
+        }
+    }
+
+    private boolean isFirstMove(){
+        switch(m_attrib.getType()){
+            case PAWN -> {
+                if(m_attrib.getColor() == PieceAttributes.Color.WHITE)
+                    return this.m_pos.row() == 6;
+                else return this.m_pos.row() == 1;
+            }
+            case ROOK -> {
+                if(m_attrib.getColor() == PieceAttributes.Color.WHITE)
+                    return this.m_pos.row() == 7 && (this.m_pos.col() == 0 || this.m_pos.col() == 7);
+                else return this.m_pos.row() == 0 && (this.m_pos.col() == 0 || this.m_pos.col() == 7);
+            }
+
+            case KING -> {
+                if(m_attrib.getColor() == PieceAttributes.Color.WHITE)
+                    return this.m_pos.row() == 7 && this.m_pos.col() == 4;
+                else return this.m_pos.row() == 0 && this.m_pos.col() == 4;
+            }
+            default -> {
+                return true;
+            }
         }
     }
 
@@ -36,17 +60,6 @@ public abstract class Piece{
      */
     public abstract ArrayList<Pos> calculatePossibleMoves(BoardSquare[][] boardSquares);
 
-    @Override
-    public boolean equals(Object obj){
-        if(this == obj)
-            return true;
-        if(obj == null)
-            return false;
-        if(getClass() != obj.getClass())
-            return false;
-        Piece other = (Piece) obj;
-        return m_pos.equals(other.m_pos);
-    }
 
     public void movePiece(int row, int col){
         this.m_pos = new Pos(row, col);
@@ -60,6 +73,8 @@ public abstract class Piece{
         if(m_moveCount == 0)
             m_isFirstMove = true;
     }
+
+    public boolean getFirstMove(){return m_isFirstMove;}
 
     public Pos getPos(){return m_pos;}
 
@@ -89,5 +104,18 @@ public abstract class Piece{
     @Override
     public String toString(){
         return "Piece{" + "m_pos=" + m_pos + '}';
+    }
+
+    @Override
+    public boolean equals(Object o){
+        if(this == o) return true;
+        if(!(o instanceof Piece)) return false;
+        Piece piece = (Piece) o;
+        return Objects.equals(m_pos, piece.m_pos) && Objects.equals(m_attrib, piece.m_attrib);
+    }
+
+    @Override
+    public int hashCode(){
+        return Objects.hash(m_pos, m_attrib);
     }
 }

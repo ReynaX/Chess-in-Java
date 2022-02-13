@@ -4,6 +4,7 @@ import board.BoardSquare;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 public class Queen extends Piece{
     public Queen(PieceAttributes attrib, Pos pos){

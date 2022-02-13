@@ -3,6 +3,7 @@ package pieces;
 import board.BoardSquare;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class Knight extends Piece{
     public Knight(PieceAttributes attrib, Pos pos){

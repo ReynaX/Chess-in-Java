@@ -1,5 +1,6 @@
 package pieces;
 
+import java.util.Objects;
 import java.util.Random;
 
 public class PieceAttributes{
@@ -20,8 +21,8 @@ public class PieceAttributes{
     public void setColor(Color color){m_color = color;}
 
     public enum Type{
-        KING(900, 'K'), QUEEN(90, 'Q'), ROOK(50, 'R'),
-        BISHOP(30, 'B'), KNIGHT(30, 'N'), PAWN(10, 'P');
+        KING(9000, 'K'), QUEEN(900, 'Q'), ROOK(500, 'R'),
+        BISHOP(300, 'B'), KNIGHT(300, 'N'), PAWN(100, 'P');
 
         private final int m_value;
         private final char m_charValue;
@@ -37,7 +38,7 @@ public class PieceAttributes{
     }
 
     public enum Color{
-        WHITE(1), BLACK(-1);
+        NONE(0), WHITE(1), BLACK(-1);
 
         private final int m_value;
 
@@ -49,5 +50,18 @@ public class PieceAttributes{
             int randValue = new Random().nextInt(2);
             return (randValue % 2 == 0) ? WHITE : BLACK;
         }
+    }
+
+    @Override
+    public boolean equals(Object o){
+        if(this == o) return true;
+        if(o == null || getClass() != o.getClass()) return false;
+        PieceAttributes that = (PieceAttributes) o;
+        return m_color == that.m_color && m_type == that.m_type;
+    }
+
+    @Override
+    public int hashCode(){
+        return Objects.hash(m_color, m_type);
     }
 }

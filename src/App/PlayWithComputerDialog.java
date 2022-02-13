@@ -21,8 +21,6 @@ public class PlayWithComputerDialog extends JDialog{
     private JComboBox timeControlComboBox;
     private JPanel colorPanel;
     private JSlider depthSlider;
-    private JSlider maxTimeSlider;
-    private JLabel maxTimeLabel;
     private JLabel depthLabel;
     private JToggleButton whiteColorButton;
     private JToggleButton blackColorButton;
@@ -76,10 +74,6 @@ public class PlayWithComputerDialog extends JDialog{
             depthLabel.setText("Depth: " + value);
         });
 
-        maxTimeSlider.addChangeListener(e -> {
-            int value = maxTimeSlider.getValue();
-            maxTimeLabel.setText("Max thinking time in seconds: " + value);
-        });
 
         timePanel.setVisible(false);
     }
@@ -133,17 +127,16 @@ public class PlayWithComputerDialog extends JDialog{
         }
 
         int depth = depthSlider.getValue();
-        int maxThinkingTime = maxTimeSlider.getValue();
         // Get selected color value, if no color is selected choose randomly
         if(whiteColorButton.isSelected()){
             m_result = new Result(playTimeValue, incrementValue, PieceAttributes.Color.WHITE,
-                                  depth, maxThinkingTime);
+                                  depth);
         }else if(blackColorButton.isSelected())
             m_result = new Result(playTimeValue, incrementValue, PieceAttributes.Color.BLACK,
-                                  depth, maxThinkingTime);
+                                  depth);
         else
             m_result = new Result(playTimeValue, incrementValue, PieceAttributes.Color.randomColor(),
-                                  depth, maxThinkingTime);
+                                  depth);
         dispose();
     }
 
@@ -152,7 +145,7 @@ public class PlayWithComputerDialog extends JDialog{
 
         // add your code here if necessary
         m_result = new Result(-1, -1, PieceAttributes.Color.BLACK,
-                              -1, -1);
+                              -1);
         dispose();
     }
 
@@ -167,15 +160,12 @@ public class PlayWithComputerDialog extends JDialog{
         private final int m_incrementPerMove;
         private final PieceAttributes.Color m_playerColor;
         private final int m_depth;
-        private final int m_maxThinkingTime;
 
-        public Result(int timePerSide, int incrementPerMove, PieceAttributes.Color playerColor, int depth,
-                      int maxThinkingTime){
+        public Result(int timePerSide, int incrementPerMove, PieceAttributes.Color playerColor, int depth){
             m_timePerSide = timePerSide;
             m_incrementPerMove = incrementPerMove;
             m_playerColor = playerColor;
             m_depth = depth;
-            m_maxThinkingTime = maxThinkingTime;
         }
 
 
@@ -187,7 +177,6 @@ public class PlayWithComputerDialog extends JDialog{
 
         public int getDepth(){return m_depth;}
 
-        public int getMaxThinkingTime(){return m_maxThinkingTime;}
 
     }
 

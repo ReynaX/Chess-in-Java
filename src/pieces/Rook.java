@@ -4,6 +4,7 @@ import board.BoardSquare;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 public class Rook extends Piece{
     public Rook(PieceAttributes attrib, Pos pos){

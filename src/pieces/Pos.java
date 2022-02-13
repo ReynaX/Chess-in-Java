@@ -1,5 +1,7 @@
 package pieces;
 
+import java.util.Objects;
+
 public class Pos{
     public Pos(int x, int y){
         m_row = x;
@@ -22,6 +24,11 @@ public class Pos{
 
         Pos pos = (Pos) obj;
         return this.row() == pos.row() && this.col() == pos.col();
+    }
+
+    @Override
+    public int hashCode(){
+        return Objects.hash(m_row, m_col);
     }
 
     @Override

@@ -1,6 +1,8 @@
 package board;
 
+import pieces.King;
 import pieces.Piece;
+import pieces.PieceAttributes;
 import pieces.Pos;
 
 import javax.swing.*;
@@ -54,5 +56,25 @@ public class BoardSquare extends JToggleButton{
             this.setIcon(new ImageIcon(piece.getIcon()));
         else this.setIcon(null);
         m_piece = piece;
+    }
+
+    @Override
+    public boolean equals(Object o){
+        if(this == o) return true;
+        if(o == null || getClass() != o.getClass()) return false;
+        BoardSquare that = (BoardSquare) o;
+        return Objects.equals(m_color, that.m_color) && Objects.equals(m_pos, that.m_pos) && Objects.equals(m_piece, that.m_piece);
+    }
+
+    @Override
+    public int hashCode(){
+        // For some reason I'm not able to hash m_piece itself, commenting this if will remove the issue, but hashing
+        // won't work correctly
+        if(m_piece != null){
+            int hash = m_piece.getColor().hashCode();
+            if(hash != 0)
+                return Objects.hash(m_color, m_pos, m_piece); // breaks layout in the application
+        }
+        return Objects.hash(m_color, m_pos);
     }
 }

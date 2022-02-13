@@ -3,6 +3,7 @@ package pieces;
 import board.BoardSquare;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class Pawn extends Piece{
     private boolean m_hasDoubleMoved = false;
@@ -17,7 +18,7 @@ public class Pawn extends Piece{
 
     public boolean isEnpassantPossible(){return m_hasDoubleMoved;}
 
-    public void setEnpassantImpossible(){m_hasDoubleMoved = false;}
+    public void setEnpassant(boolean b){m_hasDoubleMoved = b;}
 
     public void setFirstMove(boolean firstMove){
         m_isFirstMove = firstMove;
