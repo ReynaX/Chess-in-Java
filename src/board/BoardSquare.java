@@ -1,6 +1,5 @@
 package board;
 
-import pieces.King;
 import pieces.Piece;
 import pieces.PieceAttributes;
 import pieces.Pos;
@@ -71,10 +70,10 @@ public class BoardSquare extends JToggleButton{
         // For some reason I'm not able to hash m_piece itself, commenting this if will remove the issue, but hashing
         // won't work correctly
         if(m_piece != null){
-            int hash = m_piece.getColor().hashCode();
-            if(hash != 0)
-                return Objects.hash(m_color, m_pos, m_piece); // breaks layout in the application
+            PieceAttributes.Type type = m_piece.getType();
+            PieceAttributes.Color color = m_piece.getColor();
+            return Objects.hash(m_pos, type, color); // breaks layout in the application
         }
-        return Objects.hash(m_color, m_pos);
+        return Objects.hash(m_pos);
     }
 }

@@ -11,6 +11,14 @@ public class Queen extends Piece{
         super(attrib, pos);
     }
 
+    public Queen(Pawn other){
+        super(other);
+        this.m_attrib = new PieceAttributes(other.getColor(), PieceAttributes.Type.QUEEN);
+        if(!assignIcon()){
+            System.exit(1);
+        }
+    }
+
     @Override
     public ArrayList<Pos> calculatePossibleMoves(BoardSquare[][] boardSquares){
         ArrayList<Pos> possibleMoves = new ArrayList<>();

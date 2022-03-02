@@ -3,18 +3,26 @@ package pieces;
 import board.BoardSquare;
 
 import java.util.ArrayList;
-import java.util.Objects;
 
 public class Pawn extends Piece{
     private boolean m_hasDoubleMoved = false;
 
     public Pawn(PieceAttributes attrib, Pos pos){
         super(attrib, pos);
-        m_isFirstMove = true;
+        // Check if pawn returns to its original position
+        if(attrib.getColor() == PieceAttributes.Color.WHITE && pos.row() == 6)
+            m_isFirstMove = true;
+        else m_isFirstMove = attrib.getColor() == PieceAttributes.Color.BLACK && pos.row() == 1;
+
+        if(!assignIcon()){
+            System.exit(1);
+        }
     }
 
-    /** Used when pawn gets to the edge of a board and promotes **/
-    public void setNewType(pieces.PieceAttributes.Type type){m_attrib.setType(type);}
+    public Pawn(Piece other){
+        super(other);
+        this.m_attrib = new PieceAttributes(other.getColor(), PieceAttributes.Type.PAWN);
+    }
 
     public boolean isEnpassantPossible(){return m_hasDoubleMoved;}
 
@@ -38,11 +46,14 @@ public class Pawn extends Piece{
         this.m_pos = new Pos(row, col);
         --m_moveCount;
         if(m_moveCount == 0){
-            m_isFirstMove = true;
+            // Check if pawn returns to its original position
+            if(getColor() == PieceAttributes.Color.WHITE && m_pos.row() == 6)
+                m_isFirstMove = true;
+            else m_isFirstMove = getColor() == PieceAttributes.Color.BLACK && m_pos.row() == 1;
+
             m_hasDoubleMoved = false;
         }else if(m_moveCount == 1){
             m_isFirstMove = false;
-            m_hasDoubleMoved = true;
         }
     }
 

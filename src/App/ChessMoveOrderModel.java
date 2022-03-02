@@ -14,6 +14,12 @@ public class ChessMoveOrderModel extends AbstractTableModel{
             m_whiteMove = whiteMove;
             m_blackMove = blackMove;
         }
+
+        @Override
+        public String toString(){
+            System.out.println(m_rowIndex + "." + m_whiteMove + " " + m_blackMove + " ");
+            return m_rowIndex + "." + m_whiteMove + " " + m_blackMove + " ";
+        }
     }
 
     private final ArrayList<RowData> m_rowData = new ArrayList<>();
@@ -43,7 +49,7 @@ public class ChessMoveOrderModel extends AbstractTableModel{
     public void setValueAt(Object value, int rowIndex, int columnIndex){
         if(rowIndex < 0 || rowIndex > m_rowData.size())
             return;
-
+        System.out.println(value);
         switch(columnIndex){
             case 0 -> m_rowData.get(rowIndex - 1).m_rowIndex = (Integer) value;
             case 1 -> m_rowData.get(rowIndex - 1).m_whiteMove = (String) value;
@@ -67,5 +73,20 @@ public class ChessMoveOrderModel extends AbstractTableModel{
             m_rowData.subList(rowCount, m_rowData.size()).clear();
             fireTableDataChanged();
         }
+    }
+
+    private String rowToPng(int row){
+        if(row >= getRowCount())
+            return "";
+        return m_rowData.get(row).toString();
+    }
+
+    public String convertToPNG(){
+        StringBuilder png = new StringBuilder();
+        int rows = this.getRowCount();
+        for(int row = 0; row < rows; ++row){
+            png.append(rowToPng(row));
+        }
+        return png.toString();
     }
 }

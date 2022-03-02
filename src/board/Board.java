@@ -14,8 +14,8 @@ public class Board extends JPanel{
     /** Handles game state, moves and position evaluation */
     private final GameLogicController m_logicController;
     /** Position that will be loaded if given position was invalid */
-    private final String m_standardFeNotation = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
+    //private final String m_standardFeNotation = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    private final String m_standardFeNotation = "4k2r/6r1/8/8/8/8/3R4/R3K3 w Qk - 0 1";
     private SoundPlayer m_moveSound;
     private SoundPlayer m_captureSound;
     private SoundPlayer m_checkSound;
@@ -43,7 +43,7 @@ public class Board extends JPanel{
             }
         }
         m_logicController = new GameLogicController(this);
-        if(readFromFENotation(feNotation)){
+        if(!readFromFENotation(feNotation)){
             readFromFENotation(m_standardFeNotation);
         }
 
@@ -286,31 +286,34 @@ public class Board extends JPanel{
                                          boolean blackLongCastle){
         Pos whiteKing = findKingPos(PieceAttributes.Color.WHITE), blackKing = findKingPos(PieceAttributes.Color.BLACK);
 
-        // Check if kings are in right place
-        if(whiteKing.row() != 7 || whiteKing.col() != 4)
-            return false;
-        if(blackKing.row() != 0 || blackKing.col() != 4)
-            return false;
 
         if(whiteShortCastle){
+            if(whiteKing.row() != 7 || whiteKing.col() != 4)
+                return false;
             Piece piece = m_boardSquares[7][7].getPiece();
             if(piece == null || piece.getType() != PieceAttributes.Type.ROOK || piece.getColor() != PieceAttributes.Color.WHITE)
                 return false;
         }
         if(whiteLongCastle){
+            if(whiteKing.row() != 7 || whiteKing.col() != 4)
+                return false;
             Piece piece = m_boardSquares[7][0].getPiece();
             if(piece == null || piece.getType() != PieceAttributes.Type.ROOK || piece.getColor() != PieceAttributes.Color.WHITE)
                 return false;
         }
 
         if(blackShortCastle){
-            Piece piece = m_boardSquares[0][0].getPiece();
+            if(blackKing.row() != 0 || blackKing.col() != 4)
+                return false;
+            Piece piece = m_boardSquares[0][7].getPiece();
             if(piece == null || piece.getType() != PieceAttributes.Type.ROOK || piece.getColor() != PieceAttributes.Color.BLACK)
                 return false;
         }
 
         if(blackLongCastle){
-            Piece piece = m_boardSquares[0][7].getPiece();
+            if(blackKing.row() != 0 || blackKing.col() != 4)
+                return false;
+            Piece piece = m_boardSquares[0][0].getPiece();
             return piece != null && piece.getType() == PieceAttributes.Type.ROOK && piece.getColor() == PieceAttributes.Color.BLACK;
         }
         return true;
@@ -361,6 +364,14 @@ public class Board extends JPanel{
         GridBagConstraints gbc = new GridBagConstraints(gridX, gridY, gridWidth, gridHeight, weightX, weightY, anchor
                 , fill, new Insets(0, 0, 0, 0), 0, 0);
         this.add(component, gbc);
+    }
+
+    public GameLogicController.GameState getResult(){
+        return m_logicController.m_gameState;
+    }
+
+    public PieceAttributes.Color getWinningColor(){
+        return m_logicController.m_winningColor;
     }
 
     public void createTwoPlayerGame(int timePerSide, int incrementPerMove){

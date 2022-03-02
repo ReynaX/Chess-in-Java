@@ -1,7 +1,7 @@
 package App;
 
 import board.Board;
-import pieces.Piece;
+import board.GameLogicController;
 import pieces.PieceAttributes;
 
 import javax.swing.*;
@@ -9,7 +9,6 @@ import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.io.*;
-import java.net.URL;
 import java.util.Objects;
 
 
@@ -18,6 +17,7 @@ public class ChessApp extends JPanel{
     private final static String MULTI_PLAYER = "Play with a friend";
     private final static String READ_FROM = "Read game state from file";
     private final static String SAVE_TO = "Save gamestate to fil";
+
     private static final ChessMoveOrderModel m_moveOrderModel = new ChessMoveOrderModel();
     private static final String feNotation = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     private static final Board m_board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -31,7 +31,6 @@ public class ChessApp extends JPanel{
         this.setLayout(new GridBagLayout());
         createMainMenu();
         setVisible(true);
-        this.setMaximumSize(this.getPreferredSize());
         this.setBackground(new Color(0x312e2b));
     }
 
@@ -61,7 +60,8 @@ public class ChessApp extends JPanel{
         scrollPane.setPreferredSize(new Dimension(175, 500));
         scrollPane.getViewport().setBackground(new Color(0x312e2b));
         scrollPane.getViewport().setForeground(new Color(0x312e2b));
-        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
 
 
@@ -137,8 +137,10 @@ public class ChessApp extends JPanel{
                     saveToFile();
                     return;
                 }
+                default -> {
+                    return;
+                }
             }
-            assert newDialog != null;
             newDialog.pack();
             if(newDialog instanceof PlayWithFriendDialog){
                 PlayWithFriendDialog.Result result = ((PlayWithFriendDialog) newDialog).showDialog();
@@ -157,13 +159,24 @@ public class ChessApp extends JPanel{
         }
     };
 
+    private static String addGameResult(){
+        PieceAttributes.Color winningColor = m_board.getWinningColor();
+        GameLogicController.GameState gameState = m_board.getResult();
+
+        if(winningColor == PieceAttributes.Color.WHITE)
+            return "1 0";
+        else if(winningColor == PieceAttributes.Color.BLACK)
+            return "0 1";
+        else if(gameState == GameLogicController.GameState.STALEMATE)
+            return "0.5 0.5";
+        return "*";
+    }
+
     private static void saveToFile(){
-        PrintWriter writer = null;
-        try{
-            writer =
-                    new PrintWriter(
-                            Objects.requireNonNull(ChessApp.class.getResource("/game_saved.txt")).getPath());
-            String notation = m_board.generateFENotation();
+        try(PrintWriter writer = new PrintWriter(
+                Objects.requireNonNull(ChessApp.class.getResource("/game_saved.txt")).getPath())){
+            String notation = m_moveOrderModel.convertToPNG();
+            notation += addGameResult();
             writer.print(notation);
             JOptionPane.showMessageDialog(null, "Game state saved to: " +
                                                 ChessApp.class.getResource("/game_saved.txt").getPath(), "Save",
@@ -171,10 +184,7 @@ public class ChessApp extends JPanel{
         }catch(FileNotFoundException e){
             JOptionPane.showMessageDialog(null, "File not found", "Error",
                                           JOptionPane.ERROR_MESSAGE);
-        }finally{
-            if(writer != null)
-                writer.close();
         }
     }
-    
+
 }

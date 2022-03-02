@@ -1,14 +1,10 @@
 package board;
 
-import pieces.Piece;
-import pieces.Pos;
-
 import java.util.HashMap;
 import java.util.Map;
 
 public class GameStateCache{
     private final Map<Integer, Double> m_cache;
-    private double m_score;
 
     public GameStateCache(){
         m_cache = new HashMap<>();

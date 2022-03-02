@@ -21,6 +21,9 @@ public class GameLogicController implements ActionListener{
     /** Current clicked square(always has a piece) */
     private BoardSquare m_boardSquareClicked;
 
+    /** Move history */
+    private final ArrayList<Move> m_moveHistory = new ArrayList<>();
+
     /**
      * Indicates whether current move is castling.
      * Needed for printing move history
@@ -28,7 +31,7 @@ public class GameLogicController implements ActionListener{
     private boolean m_isCastling = false;
     /** Indicates the state of a current chess game (NONE, CHECK, MATE, STALEMATE) */
     protected GameState m_gameState = GameState.NONE;
-    /** Indicates the type of a current chess game (NONE, SINGLE, MULTI, ANALYZE) */
+    /** Indicates the type of a current chess game (NONE, SINGLE, MULTI) */
     private GameType m_gameType = GameType.NONE;
     /** Timer for white player */
     private final App.Timer m_whiteTimer = new App.Timer(0, 0);
@@ -39,13 +42,15 @@ public class GameLogicController implements ActionListener{
     /** True if future moves are calculated */
     private boolean m_isPseudoMoving = false;
     /** Max depth of minmax search algorithm */
-    private int m_engineDepth;
+    private int m_engineDepth = 0;
     /** Pseudo <a href="https://en.wikipedia.org/wiki/Transposition_table">transposition table</a> */
     private GameStateCache m_cache;
     /** Counter for moves with no capture or no pawn moves */
     protected int m_halfMoves = 0;
     /** Counter for all moves, incremented after black move */
     protected int m_fullMoves = 1;
+    /** Winning color of game */
+    protected PieceAttributes.Color m_winningColor = PieceAttributes.Color.NONE;
 
     /**
      * @param board object of class Board that contains a current chess board position
@@ -67,6 +72,7 @@ public class GameLogicController implements ActionListener{
         m_fullMoves = 1;
         m_halfMoves = 0;
         m_boardSquareClicked = null;
+        m_winningColor = PieceAttributes.Color.NONE;
         m_whiteTimer.setNewValues(timePerSide, incrementPerMove);
         m_blackTimer.setNewValues(timePerSide, incrementPerMove);
         m_isCastling = false;
@@ -106,22 +112,33 @@ public class GameLogicController implements ActionListener{
             makeBestMove();
             m_isPseudoMoving = false;
         }
+        System.out.println("Moves: " + generateMoves(2));
+        handleGameState();
     }
 
 
     /** Stops the timer of both players and shows dialog with game result **/
     private void gameFinished(){
+        String message;
+        // White won
+        if((m_gameState == GameState.MATE && m_colorToMove == PieceAttributes.Color.BLACK) ||
+           (m_gameTimer.isRunning() && m_blackTimer.hasFinished())){
+            m_winningColor = PieceAttributes.Color.WHITE;
+            message = "WHITE WON";
+        }else if((m_gameState == GameState.MATE && m_colorToMove == PieceAttributes.Color.WHITE) ||
+                 (m_gameTimer.isRunning() && m_whiteTimer.hasFinished())){
+            m_winningColor = PieceAttributes.Color.BLACK;
+            message = "BLACK WON";
+        }else
+            message = "DRAW";
+
         m_canPlay = false;
         m_blackTimer.stop();
         m_whiteTimer.stop();
         m_gameTimer.stop();
         unselectPossibleMoves();
 
-        String message;
-        if(m_gameState != GameState.STALEMATE)
-            message = m_whiteTimer.hasFinished() ?
-                    "BLACK WON!" : "WHITE WON!";
-        else message = "DRAW!";
+
         JOptionPane.showMessageDialog(null, message);
     }
 
@@ -168,14 +185,13 @@ public class GameLogicController implements ActionListener{
             if(possibleMoves.contains(pos)){
                 if(m_piecesToMove.contains(new Pair<>(pieceWaitingToMove, pos)))
                     movePiece(m_boardSquareClicked.getPiece(), m_boardSquareClicked, squareClicked);
-                //System.out.println(m_board);
             }
             unselectPossibleMoves();
             m_boardSquareClicked.setSelected(false);
             squareClicked.setSelected(false);
             m_boardSquareClicked = null;
         }
-        // Make computer move is it's desired
+        // Make computer move if it's desired
         if(m_gameType == GameType.SINGLE && m_colorToMove != m_playerColor){
             makeBestMove();
             handleGameState();
@@ -204,29 +220,77 @@ public class GameLogicController implements ActionListener{
         }
     }
 
+    int generateMoves(int depth){
+        m_isPseudoMoving = true;
+
+        handleGameState();
+        ArrayList<Pair<Piece, Pos>> possibleMoves = new ArrayList<>(m_piecesToMove);
+
+        if(depth == 1)
+            return possibleMoves.size();
+        int moves = 0;
+        for(Pair<Piece, Pos> move : possibleMoves){
+            Piece pieceToMove = move.getFirst();
+            Pos currentPos = pieceToMove.getPos(), nextPos = move.getSecond();
+
+            BoardSquare fromSquare = m_board.m_boardSquares[currentPos.row()][currentPos.col()];
+            BoardSquare toSquare = m_board.m_boardSquares[nextPos.row()][nextPos.col()];
+
+            m_isPseudoMoving = true;
+            Move m = movePiece(pieceToMove, fromSquare, toSquare);
+            moves += generateMoves(depth - 1);
+            unmakeMove(m);
+        }
+
+        m_isPseudoMoving = false;
+
+        return moves;
+    }
+
     /**
      * Check if selected move is castling or enpassant
      * If so, function calls either <code>castlingMove</code> or <code>enpassantMove</code> function
      *
      * @return true if special move has been called, false otherwise
      */
-    private boolean isSpecialMove(Piece pieceToMove, BoardSquare fromSquare, BoardSquare toSquare){
+    private Move isSpecialMove(Piece pieceToMove, BoardSquare fromSquare, BoardSquare toSquare){
         Piece toSquarePiece = toSquare.getPiece();
         // Check for castling
         if(toSquarePiece != null && pieceToMove.getType() == PieceAttributes.Type.KING
            && toSquarePiece.getType() == PieceAttributes.Type.ROOK
            && pieceToMove.getColor() == toSquarePiece.getColor()){
-            castlingMove(pieceToMove, toSquarePiece);
-            return true;
+            return castlingMove(pieceToMove, toSquarePiece);
         }
 
         // Check for enpassant
         if(toSquarePiece == null && pieceToMove.getType() == PieceAttributes.Type.PAWN
            && Math.abs(pieceToMove.getPos().col() - toSquare.getPos().col()) == 1){
-            enpassantMove(pieceToMove, fromSquare, toSquare);
-            return true;
+            return enpassantMove(pieceToMove, fromSquare, toSquare);
         }
-        return false;
+
+
+        // Check for promotion
+        if(pieceToMove.getColor() == PieceAttributes.Color.WHITE && pieceToMove.getType() == PieceAttributes.Type.PAWN
+           && toSquare.getPos().row() == 0){
+            return promotionMove(pieceToMove, fromSquare, toSquare);
+        }else if(pieceToMove.getColor() == PieceAttributes.Color.BLACK && pieceToMove.getType() == PieceAttributes.Type.PAWN
+                 && toSquare.getPos().row() == 7){
+            return promotionMove(pieceToMove, fromSquare, toSquare);
+        }
+        return null;
+    }
+
+    private void fiftyMoveRule(Piece movedPiece, boolean didCapture){
+        if(movedPiece.getColor() == PieceAttributes.Color.BLACK)
+            ++m_fullMoves;
+        if(!didCapture && movedPiece.getType() != PieceAttributes.Type.PAWN)
+            ++m_halfMoves;
+        else m_halfMoves = 0;
+
+        if(m_halfMoves >= 100){
+            m_gameState = GameState.STALEMATE;
+            gameFinished();
+        }
     }
 
     /**
@@ -238,115 +302,57 @@ public class GameLogicController implements ActionListener{
      * @param fromSquare  square that currently contains pieceToMove
      * @param toSquare    square that pieceToMove will move to
      */
-    private void movePiece(Piece pieceToMove, BoardSquare fromSquare, BoardSquare toSquare){
-        if(fromSquare == toSquare) return;
+    private Move movePiece(Piece pieceToMove, BoardSquare fromSquare, BoardSquare toSquare){
+        if(fromSquare == toSquare)
+            return null;
 
-        if(isSpecialMove(pieceToMove, fromSquare, toSquare)){
-            return;
+        Move move;
+        if((move = isSpecialMove(pieceToMove, fromSquare, toSquare)) != null){
+            return move;
         }
 
-        boolean didCapture = toSquare.getPiece() != null;
+        Piece capturedPiece = toSquare.getPiece();
 
         pieceToMove.movePiece(toSquare.getPos().row(), toSquare.getPos().col());
         toSquare.setPiece(pieceToMove);
         fromSquare.setPiece(null);
 
+        move = new Move(pieceToMove, capturedPiece, fromSquare.getPos(), Move.MoveType.NORMAL);
         if(m_colorToMove == PieceAttributes.Color.WHITE) m_colorToMove = PieceAttributes.Color.BLACK;
         else m_colorToMove = PieceAttributes.Color.WHITE;
 
         if(!m_isCastling && !m_isPseudoMoving){
+            m_moveHistory.add(move);
             changeRunningTimer();
-            createMoveNotation(fromSquare, toSquare, false, false, didCapture);
-            fiftyMoveRule(pieceToMove, didCapture);
+            fiftyMoveRule(pieceToMove, capturedPiece != null);
+            createMoveNotation(move, false, capturedPiece != null);
         }
-    }
-
-    private void fiftyMoveRule(Piece movedPiece, boolean didCapture){
-        if(movedPiece.getColor() == PieceAttributes.Color.BLACK)
-            ++m_fullMoves;
-        if(!didCapture && movedPiece.getType() != PieceAttributes.Type.PAWN)
-            ++m_halfMoves;
-        else m_halfMoves = 0;
-
-        if(m_halfMoves >= 50){
-            m_gameState = GameState.STALEMATE;
-            gameFinished();
-        }
-    }
-
-    /**
-     * Returns <code>movedPiece</code> and <code>capturedPiece</code> to its original squares.
-     * Function is called only when calculating possible future moves in <code>minMax</code> algorithm function and
-     * in <code>isChecked</code> function
-     * If a previous move was castling, <code>movedPiece</code> contains a king and <code>capturedPiece</code>
-     * contains a rook
-     * Changes color of player to move and stops the current playing timer.
-     *
-     * @param movedPiece  piece to move
-     * @param fromSquare  square that currently contains pieceToMove
-     * @param toSquare    square that pieceToMove will move to
-     * @param tmpPiece    captured piece, might be null
-     * @param isEnpassant true, if previous move was enpassant
-     */
-    private void unmakeMove(Piece movedPiece, BoardSquare fromSquare, BoardSquare toSquare, Piece tmpPiece,
-                            boolean isEnpassant){
-        if(fromSquare == toSquare) return;
-
-        if(m_colorToMove == PieceAttributes.Color.WHITE) m_colorToMove = PieceAttributes.Color.BLACK;
-        else m_colorToMove = PieceAttributes.Color.WHITE;
-
-        Pos fromSquarePos = fromSquare.getPos(), toSquarePos = toSquare.getPos();
-        // Check if move was castling
-        if(tmpPiece != null && movedPiece.getType() == PieceAttributes.Type.KING &&
-           tmpPiece.getType() == PieceAttributes.Type.ROOK && movedPiece.getColor() == tmpPiece.getColor()){
-            Pos kingPos = movedPiece.getPos(), rookPos = tmpPiece.getPos();
-            fromSquare.setPiece(movedPiece);
-            toSquare.setPiece(tmpPiece);
-
-            m_board.m_boardSquares[kingPos.row()][kingPos.col()].setPiece(null);
-            m_board.m_boardSquares[rookPos.row()][rookPos.col()].setPiece(null);
-
-            movedPiece.unmakeMove(fromSquarePos.row(), fromSquarePos.col());
-            tmpPiece.unmakeMove(toSquarePos.row(), toSquarePos.col());
-            return;
-        }
-
-        // Check if move was enpassant
-        if(isEnpassant && tmpPiece != null){
-            int colDiff = Math.abs(fromSquarePos.col() - toSquarePos.col());
-            if(colDiff == 1){
-                m_board.m_boardSquares[tmpPiece.getPos().row()][tmpPiece.getPos().col()].setPiece(tmpPiece);
-                fromSquare.setPiece(movedPiece);
-                toSquare.setPiece(null);
-                movedPiece.unmakeMove(fromSquarePos.row(), fromSquarePos.col());
-                return;
-            }
-        }
-
-        fromSquare.setPiece(movedPiece);
-        toSquare.setPiece(tmpPiece);
-        movedPiece.unmakeMove(fromSquarePos.row(), fromSquarePos.col());
+        return move;
     }
 
     /**
      * <a href="">Enpassant</a>
      **/
-    private void enpassantMove(Piece pawn, BoardSquare fromSquare, BoardSquare toSquare){
+    private Move enpassantMove(Piece pawn, BoardSquare fromSquare, BoardSquare toSquare){
         int direction = -pawn.getColor().getValue();
         pawn.movePiece(toSquare.getPos().row(), toSquare.getPos().col());
         toSquare.setPiece(pawn);
         fromSquare.setPiece(null);
 
+        Piece capturedPawn = m_board.m_boardSquares[pawn.getPos().row() - direction][pawn.getPos().col()].getPiece();
         m_board.m_boardSquares[pawn.getPos().row() - direction][pawn.getPos().col()].setPiece(null);
 
         if(m_colorToMove == PieceAttributes.Color.WHITE) m_colorToMove = PieceAttributes.Color.BLACK;
         else m_colorToMove = PieceAttributes.Color.WHITE;
 
+        Move move = new Move(pawn, capturedPawn, fromSquare.getPos(), Move.MoveType.ENPASSANT);
         if(!m_isPseudoMoving){
+            m_moveHistory.add(move);
             changeRunningTimer();
-            createMoveNotation(fromSquare, toSquare, false, false, true);
             fiftyMoveRule(pawn, true);
+            createMoveNotation(move, false, true);
         }
+        return move;
     }
 
     /**
@@ -355,8 +361,9 @@ public class GameLogicController implements ActionListener{
      * Changes color of player to move and stops the current playing timer.
      * Calls <code>createMoveNotation</code> method.
      **/
-    private void castlingMove(Piece king, Piece rook){
+    private Move castlingMove(Piece king, Piece rook){
         int diff = king.getPos().col() - rook.getPos().col();
+        Pos kingPos = king.getPos();
         m_isCastling = true;
         if(diff > 0){
             // Castling king side
@@ -376,11 +383,104 @@ public class GameLogicController implements ActionListener{
         if(m_colorToMove == PieceAttributes.Color.WHITE) m_colorToMove = PieceAttributes.Color.BLACK;
         else m_colorToMove = PieceAttributes.Color.WHITE;
 
+        Move move = new Move(king, rook, kingPos, Move.MoveType.CASTLING);
         if(!m_isPseudoMoving){
+            m_moveHistory.add(move);
             changeRunningTimer();
-            createMoveNotation(null, null, true, diff > 0, false);
             fiftyMoveRule(king, false);
+            createMoveNotation(move, diff > 0, false);
         }
+        return move;
+    }
+
+    private Move promotionMove(Piece pawnToMove, BoardSquare fromSquare, BoardSquare toSquare){
+        Piece pieceCaptured = toSquare.getPiece();
+
+        Piece newQueen = new Queen((Pawn) pawnToMove);
+        pawnToMove.setPos(new Pos(toSquare.getPos().row(), toSquare.getPos().col()));
+        newQueen.setPos(new Pos(toSquare.getPos().row(), toSquare.getPos().col()));
+
+        toSquare.setPiece(newQueen);
+        fromSquare.setPiece(null);
+        if(m_colorToMove == PieceAttributes.Color.WHITE) m_colorToMove = PieceAttributes.Color.BLACK;
+        else m_colorToMove = PieceAttributes.Color.WHITE;
+
+        //System.out.println(m_board);
+        Move move = new Move(pawnToMove, pieceCaptured, fromSquare.getPos(), Move.MoveType.PROMOTION);
+        if(!m_isPseudoMoving){
+            m_moveHistory.add(move);
+            changeRunningTimer();
+            fiftyMoveRule(pawnToMove, pieceCaptured != null);
+            createMoveNotation(move, false, pieceCaptured != null);
+        }
+        return move;
+    }
+
+    /**
+     * Returns <code>movedPiece</code> and <code>capturedPiece</code> to its original squares.
+     * Function is called only when calculating possible future moves in <code>minMax</code> algorithm function and
+     * in <code>isChecked</code> function
+     * If a previous move was castling, <code>movedPiece</code> contains a king and <code>capturedPiece</code>
+     * contains a rook
+     * Changes color of player to move and stops the current playing timer.
+     *
+     * @param move object that contains information about move(moved piece, captured piece, initial position, move type)
+     */
+    private Piece unmakeMove(Move move){
+        Piece movedPiece = move.getMovedPiece(), capturedPiece = move.getCapturedPiece();
+        Pos initialPos = move.getInitialPos();
+
+        if(m_colorToMove == PieceAttributes.Color.WHITE) m_colorToMove = PieceAttributes.Color.BLACK;
+        else m_colorToMove = PieceAttributes.Color.WHITE;
+
+
+        BoardSquare fromSquare = m_board.m_boardSquares[initialPos.row()][initialPos.col()],
+                toSquare;
+
+        // Check if move was castling
+        if(move.getMoveType() == Move.MoveType.CASTLING){
+            int diff = movedPiece.getPos().col() - initialPos.col();
+            if(diff > 0) // short castle
+                toSquare = m_board.m_boardSquares[initialPos.row()][7];
+            else toSquare = m_board.m_boardSquares[initialPos.row()][0];
+
+            Pos kingPos = movedPiece.getPos(), rookPos = capturedPiece.getPos();
+            fromSquare.setPiece(movedPiece);
+            toSquare.setPiece(capturedPiece);
+
+            m_board.m_boardSquares[kingPos.row()][kingPos.col()].setPiece(null);
+            m_board.m_boardSquares[rookPos.row()][rookPos.col()].setPiece(null);
+
+            movedPiece.unmakeMove(fromSquare.getPos().row(), fromSquare.getPos().col());
+            capturedPiece.unmakeMove(toSquare.getPos().row(), toSquare.getPos().col());
+            return movedPiece;
+        }
+
+        toSquare = m_board.m_boardSquares[movedPiece.getPos().row()][movedPiece.getPos().col()];
+        // Check if move was promotion
+        if(move.getMoveType() == Move.MoveType.PROMOTION){
+            //movedPiece.unmakeMove(fromSquare.getPos().row(), fromSquare.getPos().col());
+            movedPiece.setPos(new Pos(fromSquare.getPos().row(), fromSquare.getPos().col()));
+            fromSquare.setPiece(movedPiece);
+            toSquare.setPiece(capturedPiece);
+            return movedPiece;
+        }
+
+        // Check if move was enpassant
+        if(move.getMoveType() == Move.MoveType.ENPASSANT){
+            ((Pawn) capturedPiece).setEnpassant(true);
+            m_board.m_boardSquares[capturedPiece.getPos().row()][capturedPiece.getPos().col()].setPiece(capturedPiece);
+            fromSquare.setPiece(movedPiece);
+            toSquare.setPiece(null);
+            movedPiece.unmakeMove(fromSquare.getPos().row(), fromSquare.getPos().col());
+            return movedPiece;
+        }
+
+
+        fromSquare.setPiece(movedPiece);
+        toSquare.setPiece(capturedPiece);
+        movedPiece.unmakeMove(fromSquare.getPos().row(), fromSquare.getPos().col());
+        return movedPiece;
     }
 
     /**
@@ -390,18 +490,18 @@ public class GameLogicController implements ActionListener{
      * <a href="https://en.wikipedia.org/wiki/Algebraic_notation_(chess)"> Algebraic notation</a>
      * (kinda ugly but works B))
      *
-     * @param fromSquare   square with a piece that moves, can be null if isCastling is true
-     * @param toSquare     square where a piece moves to, can be null if isCastling is true
-     * @param isCastling   true whether the last move was castling, false otherwise
+     * @param move
      * @param isLongCastle true if the last move was long castling and isCastling is true, false otherwise
      * @param didCapture   true if toSquare contained a piece
      */
-    private void createMoveNotation(BoardSquare fromSquare, BoardSquare toSquare, boolean isCastling,
-                                    boolean isLongCastle, boolean didCapture){
+    private void createMoveNotation(Move move, boolean isLongCastle, boolean didCapture){
+        BoardSquare fromSquare = m_board.m_boardSquares[move.getInitialPos().row()][move.getInitialPos().col()];
+        BoardSquare toSquare =
+                m_board.m_boardSquares[move.getMovedPiece().getPos().row()][move.getMovedPiece().getPos().col()];
         String notation;
-        if(isCastling && isLongCastle){
+        if(move.getMoveType() == Move.MoveType.CASTLING && isLongCastle){
             notation = "O-O-O";
-        }else if(isCastling){
+        }else if(move.getMoveType() == Move.MoveType.CASTLING){
             notation = "o-o-o";
         }else{
             Piece pieceToMove = toSquare.getPiece();
@@ -417,18 +517,27 @@ public class GameLogicController implements ActionListener{
             char toSquareRowChar = Character.forDigit(8 - toSquare.getPos().row(), 10);
             char toSquareColChar = (char) (toSquare.getPos().col() + 97);
 
-            if(pieceToMove.getType() == PieceAttributes.Type.PAWN){
-                if(didCapture)
-                    notation = String.format("%cx%c%c", fromSquareColChar, toSquareColChar, toSquareRowChar);
-                else
-                    notation = String.format("%c%c", toSquareColChar, toSquareRowChar);
+            if(move.getMoveType() == Move.MoveType.PROMOTION){
+                notation = String.format("%c%c=Q", toSquareColChar, toSquareRowChar);
             }else{
-                if(didCapture)
-                    notation = String.format("%c%c%cx%c%c", pieceToMoveSquareSign, fromSquareColChar, fromSquareRowChar,
-                                             toSquareColChar, toSquareRowChar);
-                else
-                    notation = String.format("%c%c%c%c%c", pieceToMoveSquareSign, fromSquareColChar, fromSquareRowChar,
-                                             toSquareColChar, toSquareRowChar);
+
+                if(pieceToMove.getType() == PieceAttributes.Type.PAWN){
+                    if(didCapture)
+                        notation = String.format("x%c%c", toSquareColChar, toSquareRowChar);
+                    else
+                        notation = String.format("%c%c", toSquareColChar, toSquareRowChar);
+                }else{
+                    if(didCapture){
+                        if(fromSquareColChar != 0)
+                            notation = String.format("%c%c%cx%c%c", pieceToMoveSquareSign, fromSquareColChar, fromSquareRowChar,
+                                                     toSquareColChar, toSquareRowChar);
+                        else
+                            notation = String.format("%cx%c%c", pieceToMoveSquareSign,
+                                                     toSquareColChar, toSquareRowChar);
+                    }else
+                        notation = String.format("%c%c%c", pieceToMoveSquareSign,
+                                                 toSquareColChar, toSquareRowChar);
+                }
             }
         }
         handleGameState();
@@ -439,9 +548,9 @@ public class GameLogicController implements ActionListener{
         }
         PieceAttributes.Color color = m_colorToMove == PieceAttributes.Color.WHITE ? PieceAttributes.Color.BLACK :
                 PieceAttributes.Color.WHITE;
-        System.out.println(m_board.generateFENotation());
         ChessApp.addNewMove(notation, color);
-        m_board.playSound(didCapture, isCastling);
+        m_board.playSound(didCapture, move.getMoveType() == Move.MoveType.CASTLING);
+        //System.out.println(m_board.generateFENotation());
         if(m_gameState == GameState.MATE) gameFinished();
     }
 
@@ -466,20 +575,13 @@ public class GameLogicController implements ActionListener{
         m_piecesToMove.clear();
         Pos kingPos = m_board.findKingPos(m_colorToMove);
         m_gameState = checkForChecks(kingPos);
-
-        // Make enpassant impossible for all moves, should have been a move history for that (I'm lazy)
-        for(int i = 0; i < 8; ++i){
-            for(int j = 0; j < 8; ++j){
-                Piece piece = m_board.m_boardSquares[i][j].getPiece();
-                if(piece != null && piece.getColor() == m_colorToMove && piece.getType() == PieceAttributes.Type.PAWN){
-                    ((Pawn) piece).setEnpassant(false);
-                }
-            }
-        }
+        // Make enpassant impossible for last moved pawn
+        if(m_moveHistory.size() > 1 && m_moveHistory.get(m_moveHistory.size() - 2).getMovedPiece().getType() == PieceAttributes.Type.PAWN)
+            ((Pawn) m_moveHistory.get(m_moveHistory.size() - 2).getMovedPiece()).setEnpassant(false);
     }
 
     /**
-     * @param halfMoves moves with no capture or no pawn moves, needef for
+     * @param halfMoves moves with no capture or no pawn moves, needed for
      *                  <a href="https://en.wikipedia.org/wiki/Fifty-move_rule">Fifty-move rule</a>
      * @param fullMoves number of all moves
      */
@@ -529,7 +631,7 @@ public class GameLogicController implements ActionListener{
                 for(int j = 0; j < 8; ++j){
                     Piece piece = m_board.m_boardSquares[i][j].getPiece();
 
-                    if(piece == null || piece.getColor() != king.getColor() || piece.equals(king))
+                    if(piece == null || piece.getColor() != king.getColor())
                         continue;
                     if(!isChecked(piece, king)) ++countPossibleMoves;
                 }
@@ -541,13 +643,14 @@ public class GameLogicController implements ActionListener{
                 gameState = GameState.STALEMATE;
             else if(attackingPieces != 0)
                 gameState = GameState.CHECK;
+
+            return gameState;
         }
 
         ArrayList<Pos> possibleMoves = king.calculatePossibleMoves(m_board.m_boardSquares);
         for(Pos pos : possibleMoves){
             m_piecesToMove.add(new Pair<>(king, pos));
         }
-
         return gameState;
     }
 
@@ -563,24 +666,12 @@ public class GameLogicController implements ActionListener{
         ArrayList<Pos> possibleMoves = piece.calculatePossibleMoves(m_board.m_boardSquares);
         int legalMovesCount = 0;
         for(Pos move : possibleMoves){
-            // Pseudo move piece to given position to check if king will be attacked
-            // UGLY CODE BELOW, should have Move object that stores all the information about pseudomoves
             BoardSquare fromSquare = m_board.m_boardSquares[piece.getPos().row()][piece.getPos().col()];
             BoardSquare toSquare = m_board.m_boardSquares[move.row()][move.col()];
-            Piece tmpPiece = toSquare.getPiece();
 
-            boolean isEnpassant = tmpPiece == null && piece.getType() == PieceAttributes.Type.PAWN &&
-                                  Math.abs(move.col() - piece.getPos().col()) == 1;
-
-            if(isEnpassant){
-                int direction = piece.getColor().getValue();
-                tmpPiece = m_board.m_boardSquares[move.row() + direction][move.col()].getPiece();
-            }
-
-            movePiece(piece, fromSquare, toSquare);
+            Move m = movePiece(piece, fromSquare, toSquare);
             boolean isKingSafe = king.isKingSafe(m_board.m_boardSquares);
-            unmakeMove(piece, fromSquare, toSquare, tmpPiece, isEnpassant);
-
+            unmakeMove(m);
 
             if(isKingSafe){
                 m_piecesToMove.add(new Pair<>(piece, move));
@@ -603,8 +694,7 @@ public class GameLogicController implements ActionListener{
         m_isPseudoMoving = true;
         boolean isMaximizing = m_playerColor != PieceAttributes.Color.WHITE;
 
-        double alpha = -Double.MAX_VALUE, beta = Double.MAX_VALUE;
-        double bestScore = isMaximizing ? alpha : beta;
+        double bestScore = isMaximizing ? -Double.MAX_VALUE : Double.MAX_VALUE;
 
         handleGameState();
         ArrayList<Pair<Piece, Pos>> possibleMoves = new ArrayList<>(m_piecesToMove);
@@ -616,20 +706,10 @@ public class GameLogicController implements ActionListener{
             BoardSquare fromSquare = m_board.m_boardSquares[currentPos.row()][currentPos.col()];
             BoardSquare toSquare = m_board.m_boardSquares[nextPos.row()][nextPos.col()];
 
-            Piece tmpPiece = toSquare.getPiece();
-            boolean isEnpassant = tmpPiece == null && pieceToMove.getType() == PieceAttributes.Type.PAWN &&
-                                  Math.abs(nextPos.col() - currentPos.col()) == 1;
-
-            if(isEnpassant){
-                int direction = pieceToMove.getColor().getValue();
-                tmpPiece = m_board.m_boardSquares[nextPos.row() + direction][nextPos.col()].getPiece();
-                m_board.m_boardSquares[nextPos.row() + direction][nextPos.col()].setPiece(null);
-            }
             m_isPseudoMoving = true;
-            movePiece(pieceToMove, fromSquare, toSquare);
-
-            double score = minMax(depth - 1, alpha, beta, !isMaximizing);
-            unmakeMove(move.getFirst(), fromSquare, toSquare, tmpPiece, isEnpassant);
+            Move m = movePiece(pieceToMove, fromSquare, toSquare);
+            double score = minMax(depth - 1, -Double.MAX_VALUE, Double.MAX_VALUE, !isMaximizing);
+            unmakeMove(m);
 
             if(isMaximizing){
                 if(score > bestScore || bestMove == null){
@@ -650,6 +730,7 @@ public class GameLogicController implements ActionListener{
         }
 
         m_isPseudoMoving = false;
+
         Piece pieceToMove = bestMove.getPieceToMove();
         BoardSquare fromSquare = m_board.m_boardSquares[pieceToMove.getPos().row()][pieceToMove.getPos().col()];
         BoardSquare toSquare = m_board.m_boardSquares[bestMove.getPosToMove().row()][bestMove.getPosToMove().col()];
@@ -674,6 +755,7 @@ public class GameLogicController implements ActionListener{
             m_cache.add(m_board.hashCode(), score);
             return score;
         }
+
         handleGameState();
         m_isPseudoMoving = true;
         ArrayList<Pair<Piece, Pos>> possibleMoves = new ArrayList<>(m_piecesToMove);
@@ -696,24 +778,14 @@ public class GameLogicController implements ActionListener{
             BoardSquare fromSquare = m_board.m_boardSquares[currentPos.row()][currentPos.col()];
             BoardSquare toSquare = m_board.m_boardSquares[nextPos.row()][nextPos.col()];
 
-            Piece tmpPiece = toSquare.getPiece();
-            boolean isEnpassant = tmpPiece == null && pieceToMove.getType() == PieceAttributes.Type.PAWN &&
-                                  Math.abs(nextPos.col() - currentPos.col()) == 1;
-
-            if(isEnpassant){
-                int direction = pieceToMove.getColor().getValue();
-                tmpPiece = m_board.m_boardSquares[nextPos.row() + direction][nextPos.col()].getPiece();
-                m_board.m_boardSquares[nextPos.row() + direction][nextPos.col()].setPiece(null);
-            }
-
-            movePiece(pieceToMove, fromSquare, toSquare);
-            double ev = 0.0;
+            Move m = movePiece(pieceToMove, fromSquare, toSquare);
+            double ev;
             // Check if position was reached before in pseudo transposition table
             if(m_cache.containsPosition(m_board.hashCode())){
                 ev = m_cache.getScore(m_board.hashCode());
             }else
                 ev = minMax(depth - 1, alpha, beta, !isMaximizing);
-            unmakeMove(move.getFirst(), fromSquare, toSquare, tmpPiece, isEnpassant);
+            unmakeMove(m);
 
             // Check if current move is better that previous ones
             if(isMaximizing){
@@ -755,7 +827,7 @@ public class GameLogicController implements ActionListener{
         m_colorToMove = color;
     }
 
-    enum GameState{
+    public enum GameState{
         NONE, CHECK, MATE, STALEMATE
     }
 
@@ -764,17 +836,7 @@ public class GameLogicController implements ActionListener{
     }
 
 
-    private static class ComputerMove{
-        private final Piece pieceToMove;
-        private final Pos posToMove;
-        private final double score;
-
-        ComputerMove(Piece pieceToMove, Pos posToMove, double score){
-            this.pieceToMove = pieceToMove;
-            this.posToMove = posToMove;
-            this.score = score;
-        }
-
+    private record ComputerMove(Piece pieceToMove, Pos posToMove, double score){
         Piece getPieceToMove(){return pieceToMove;}
 
         Pos getPosToMove(){return posToMove;}

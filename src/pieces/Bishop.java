@@ -39,17 +39,5 @@ public class Bishop extends Piece{
 
         return possibleMoves;
     }
-
-    @Override
-    public boolean equals(Object o){
-        if(this == o) return true;
-        if(!(o instanceof Bishop)) return false;
-        Piece piece = (Piece) o;
-        return Objects.equals(m_pos, piece.m_pos) && Objects.equals(m_attrib, piece.m_attrib);
-    }
-
-    @Override
-    public int hashCode(){
-        return Objects.hash(m_pos, m_attrib.getType(), m_attrib.getColor());
-    }
+    
 }
