@@ -23,10 +23,7 @@ public class GameLogicController implements ActionListener{
 
     /** Move history */
     private final ArrayList<Move> m_moveHistory = new ArrayList<>();
-    /**
-     * Indicates whether current move is castling.
-     * Needed for printing move history
-     */
+    /** Indicates whether current move is castling. Needed for printing move history */
     private boolean m_isCastling = false;
     /** Indicates the state of a current chess game (NONE, CHECK, MATE, STALEMATE) */
     protected GameState m_gameState = GameState.NONE;
