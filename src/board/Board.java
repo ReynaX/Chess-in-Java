@@ -14,8 +14,8 @@ public class Board extends JPanel{
     /** Handles game state, moves and position evaluation */
     private final GameLogicController m_logicController;
     /** Position that will be loaded if given position was invalid */
-    //private final String m_standardFeNotation = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    private final String m_standardFeNotation = "4k2r/6r1/8/8/8/8/3R4/R3K3 w Qk - 0 1";
+    private final String m_standardFeNotation = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    //private final String m_standardFeNotation = "8/8/8/7k/5P2/7K/8/R7 w - - 0 1";
     private SoundPlayer m_moveSound;
     private SoundPlayer m_captureSound;
     private SoundPlayer m_checkSound;

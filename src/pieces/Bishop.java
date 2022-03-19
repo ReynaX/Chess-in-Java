@@ -3,7 +3,6 @@ package pieces;
 import board.BoardSquare;
 
 import java.util.ArrayList;
-import java.util.Objects;
 
 public class Bishop extends Piece{
     public Bishop(PieceAttributes attrib, Pos pos){
@@ -39,5 +38,5 @@ public class Bishop extends Piece{
 
         return possibleMoves;
     }
-    
+
 }

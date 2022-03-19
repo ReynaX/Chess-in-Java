@@ -26,7 +26,8 @@ public class King extends Piece{
                 }
             }
         }
-
+        if(coveredSquares[this.getPos().row()][this.getPos().col()] > 0)
+            return possibleMoves;
         // Check if castling is possible
         if(m_isFirstMove && (m_pos.row() == 0 || m_pos.row() == 7)){
             Piece rook = boardSquares[m_pos.row()][0].getPiece();

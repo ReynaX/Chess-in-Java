@@ -23,7 +23,6 @@ public class GameLogicController implements ActionListener{
 
     /** Move history */
     private final ArrayList<Move> m_moveHistory = new ArrayList<>();
-
     /**
      * Indicates whether current move is castling.
      * Needed for printing move history
@@ -33,9 +32,7 @@ public class GameLogicController implements ActionListener{
     protected GameState m_gameState = GameState.NONE;
     /** Indicates the type of a current chess game (NONE, SINGLE, MULTI) */
     private GameType m_gameType = GameType.NONE;
-    /** Timer for white player */
     private final App.Timer m_whiteTimer = new App.Timer(0, 0);
-    /** Timer for black player */
     private final App.Timer m_blackTimer = new App.Timer(0, 0);
     /** True if game is still in progress or it's player's move */
     private boolean m_canPlay = false;
@@ -112,34 +109,64 @@ public class GameLogicController implements ActionListener{
             makeBestMove();
             m_isPseudoMoving = false;
         }
-        System.out.println("Moves: " + generateMoves(2));
+        System.out.println("Moves: " + generateMoves(4));
         handleGameState();
     }
 
 
     /** Stops the timer of both players and shows dialog with game result **/
     private void gameFinished(){
-        String message;
+        String message = "";
         // White won
         if((m_gameState == GameState.MATE && m_colorToMove == PieceAttributes.Color.BLACK) ||
            (m_gameTimer.isRunning() && m_blackTimer.hasFinished())){
             m_winningColor = PieceAttributes.Color.WHITE;
-            message = "WHITE WON";
+            message = "WHITE WON!";
         }else if((m_gameState == GameState.MATE && m_colorToMove == PieceAttributes.Color.WHITE) ||
                  (m_gameTimer.isRunning() && m_whiteTimer.hasFinished())){
             m_winningColor = PieceAttributes.Color.BLACK;
-            message = "BLACK WON";
-        }else
-            message = "DRAW";
+            message = "BLACK WON!";
+        }else if(checkForInsufficientMaterial()){
+            message = "DRAW BY INSUFFICIENT MATERIAL!";
+        }else if(m_gameState == GameState.STALEMATE){
+            message = "DRAW BY STALEMATE!";
+        }
 
         m_canPlay = false;
         m_blackTimer.stop();
         m_whiteTimer.stop();
         m_gameTimer.stop();
         unselectPossibleMoves();
-
-
         JOptionPane.showMessageDialog(null, message);
+    }
+
+    private boolean checkForInsufficientMaterial(){
+        int blackMaterial = 0, whiteMaterial = 0;
+        int blackKnightsAndBishops = 0, whiteKnightsAndBishops = 0;
+        // Count number of material
+        for(int i = 0; i < 8; ++i){
+            for(int j = 0; j < 8; ++j){
+                Piece piece = m_board.m_boardSquares[i][j].getPiece();
+                if(piece == null || piece.getType() == PieceAttributes.Type.KING)
+                    continue;
+                if(piece.getColor() == PieceAttributes.Color.WHITE){
+                    ++whiteMaterial;
+                    if(piece.getType() == PieceAttributes.Type.KNIGHT || piece.getType() == PieceAttributes.Type.BISHOP)
+                        ++whiteKnightsAndBishops;
+                }
+                if(piece.getColor() == PieceAttributes.Color.BLACK){
+                    ++blackMaterial;
+                    if(piece.getType() == PieceAttributes.Type.KNIGHT || piece.getType() == PieceAttributes.Type.BISHOP)
+                        ++blackKnightsAndBishops;
+                }
+            }
+        }
+
+        if((blackMaterial == 0 && whiteMaterial == 0) || (blackKnightsAndBishops == 1 && whiteKnightsAndBishops == 1)){
+            m_gameState = GameState.STALEMATE;
+            return true;
+        }
+        return false;
     }
 
     /** Increase timer of a player that has just moved **/
@@ -550,8 +577,8 @@ public class GameLogicController implements ActionListener{
                 PieceAttributes.Color.WHITE;
         ChessApp.addNewMove(notation, color);
         m_board.playSound(didCapture, move.getMoveType() == Move.MoveType.CASTLING);
-        //System.out.println(m_board.generateFENotation());
-        if(m_gameState == GameState.MATE) gameFinished();
+        checkForInsufficientMaterial();
+        if(m_gameState == GameState.STALEMATE || m_gameState == GameState.MATE) gameFinished();
     }
 
     /**
@@ -835,7 +862,6 @@ public class GameLogicController implements ActionListener{
         NONE, SINGLE, MULTI
     }
 
-
     private record ComputerMove(Piece pieceToMove, Pos posToMove, double score){
         Piece getPieceToMove(){return pieceToMove;}
 
@@ -843,6 +869,5 @@ public class GameLogicController implements ActionListener{
 
         double getScore(){return score;}
     }
-
 }
 
