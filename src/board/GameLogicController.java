@@ -106,7 +106,11 @@ public class GameLogicController implements ActionListener{
             makeBestMove();
             m_isPseudoMoving = false;
         }
-        System.out.println("Moves: " + generateMoves(4));
+        handleGameState();
+        long start = System.currentTimeMillis();
+        System.out.println("Moves: " + generateMoves(5));
+        long end = System.currentTimeMillis();
+        System.out.println("Time passed: " + (end - start));
         handleGameState();
     }
 
@@ -159,7 +163,8 @@ public class GameLogicController implements ActionListener{
             }
         }
 
-        if((blackMaterial == 0 && whiteMaterial == 0) || (blackKnightsAndBishops == 1 && whiteKnightsAndBishops == 1)){
+        if((blackMaterial == 0 && whiteMaterial == 0) || (blackKnightsAndBishops == 1 && whiteKnightsAndBishops == 1 &&
+                                                          blackMaterial == 1 && whiteMaterial == 1)){
             m_gameState = GameState.STALEMATE;
             return true;
         }
@@ -600,8 +605,16 @@ public class GameLogicController implements ActionListener{
         Pos kingPos = m_board.findKingPos(m_colorToMove);
         m_gameState = checkForChecks(kingPos);
         // Make enpassant impossible for last moved pawn
-        if(m_moveHistory.size() > 1 && m_moveHistory.get(m_moveHistory.size() - 2).getMovedPiece().getType() == PieceAttributes.Type.PAWN)
-            ((Pawn) m_moveHistory.get(m_moveHistory.size() - 2).getMovedPiece()).setEnpassant(false);
+        //        if(m_moveHistory.size() > 1 && m_moveHistory.get(m_moveHistory.size() - 2).getMovedPiece().getType() == PieceAttributes.Type.PAWN)
+        //            ((Pawn) m_moveHistory.get(m_moveHistory.size() - 2).getMovedPiece()).setEnpassant(false);
+
+        for(int i = 0; i < 8; ++i){
+            for(int j = 0; j < 8; ++j){
+                Piece piece = m_board.m_boardSquares[i][j].getPiece();
+                if(piece != null && piece.getType() == PieceAttributes.Type.PAWN)
+                    ((Pawn) piece).setEnpassant(false);
+            }
+        }
     }
 
     /**
@@ -689,6 +702,22 @@ public class GameLogicController implements ActionListener{
     private boolean isChecked(Piece piece, King king){
         ArrayList<Pos> possibleMoves = piece.calculatePossibleMoves(m_board.m_boardSquares);
         int legalMovesCount = 0;
+
+        // Check if removing the piece will put king in danger
+        Pos piecePos = piece.getPos();
+        if(piece.getType() != PieceAttributes.Type.KING){
+            m_board.m_boardSquares[piecePos.row()][piecePos.col()].setPiece(null);
+            if(king.isKingSafe(m_board.m_boardSquares)){
+                m_board.m_boardSquares[piecePos.row()][piecePos.col()].setPiece(piece);
+                for(Pos move : possibleMoves){
+                    m_piecesToMove.add(new Pair<>(piece, move));
+                    ++legalMovesCount;
+                }
+                return legalMovesCount == 0;
+            }
+            m_board.m_boardSquares[piecePos.row()][piecePos.col()].setPiece(piece);
+        }
+
         for(Pos move : possibleMoves){
             BoardSquare fromSquare = m_board.m_boardSquares[piece.getPos().row()][piece.getPos().col()];
             BoardSquare toSquare = m_board.m_boardSquares[move.row()][move.col()];

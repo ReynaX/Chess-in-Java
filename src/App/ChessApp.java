@@ -22,7 +22,6 @@ public class ChessApp extends JPanel{
     //private static final String feNotation = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
     private static final Board m_board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    //private static final Board m_board = new Board("8/8/8/7k/5P2/7K/8/R7 w - - 0 1");
 
     public static JButton m_playWithFriendButton;
     public static JButton m_singlePlayerMode;
