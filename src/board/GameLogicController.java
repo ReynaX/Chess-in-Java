@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.lang.reflect.Array;
 import java.util.*;
 
 public class GameLogicController implements ActionListener{
@@ -105,12 +106,12 @@ public class GameLogicController implements ActionListener{
             m_isPseudoMoving = true;
             makeBestMove();
             m_isPseudoMoving = false;
+            handleGameState();
         }
-        handleGameState();
-        long start = System.currentTimeMillis();
-        System.out.println("Moves: " + generateMoves(5));
-        long end = System.currentTimeMillis();
-        System.out.println("Time passed: " + (end - start));
+        //long start = System.currentTimeMillis();
+        //System.out.println("Moves: " + generateMoves(6));
+        //long end = System.currentTimeMillis();
+        //System.out.println("Time passed: " + (end - start));
         handleGameState();
     }
 
@@ -750,6 +751,8 @@ public class GameLogicController implements ActionListener{
         double bestScore = isMaximizing ? -Double.MAX_VALUE : Double.MAX_VALUE;
 
         handleGameState();
+
+        sortPossibleMoves();
         ArrayList<Pair<Piece, Pos>> possibleMoves = new ArrayList<>(m_piecesToMove);
 
         for(Pair<Piece, Pos> move : possibleMoves){
@@ -810,6 +813,8 @@ public class GameLogicController implements ActionListener{
         }
 
         handleGameState();
+        sortPossibleMoves();
+        //System.out.println(m_piecesToMove.size());
         m_isPseudoMoving = true;
         ArrayList<Pair<Piece, Pos>> possibleMoves = new ArrayList<>(m_piecesToMove);
 
@@ -856,6 +861,35 @@ public class GameLogicController implements ActionListener{
         return best;
     }
 
+    public void sortPossibleMoves(){
+        double[] scores = new double[m_piecesToMove.size()];
+        for(int i = 0; i < scores.length; ++i){
+            Piece pieceToMove = m_piecesToMove.get(i).getFirst();
+            Pos pos = m_piecesToMove.get(i).getSecond();
+            m_isPseudoMoving = true;
+            Move m = movePiece(pieceToMove, m_board.m_boardSquares[pieceToMove.getPos().row()][pieceToMove.getPos().col()],
+                               m_board.m_boardSquares[pos.row()][pos.col()]);
+            scores[i] = PositionEvaluationController.getRating(m_board, m_gameState, m_colorToMove);
+            unmakeMove(m);
+        }
+
+        double[] scoresSorted = Arrays.copyOf(scores, scores.length);
+        Arrays.sort(scoresSorted);
+        //        int i1 = scores.length - Math.min(5, scores.length);
+        //        int from = m_colorToMove == PieceAttributes.Color.WHITE ? i1 : 0;
+        //        int to = m_colorToMove == PieceAttributes.Color.WHITE ? scores.length : Math.min(scores.length, 5);
+        //        double[] scoresRanged = Arrays.copyOfRange(scoresSorted, from,
+        //        to);
+
+        ArrayList<Pair<Piece, Pos>> bestMoves = new ArrayList<>();
+        for(int i = 0; i < scores.length; ++i){
+            double score = scores[i];
+            int index = Arrays.binarySearch(scoresSorted, score);
+            if(index < 0 || index >= scores.length) continue;
+            bestMoves.add(m_piecesToMove.get(index));
+        }
+        m_piecesToMove = bestMoves;
+    }
 
     /** Checks whether one of timers has stopped and stops the game if so **/
     private final javax.swing.Timer m_gameTimer = new javax.swing.Timer(100, e -> {

@@ -49,7 +49,7 @@ public class ChessMoveOrderModel extends AbstractTableModel{
     public void setValueAt(Object value, int rowIndex, int columnIndex){
         if(rowIndex < 0 || rowIndex > m_rowData.size())
             return;
-        System.out.println(value);
+        //System.out.println(value);
         switch(columnIndex){
             case 0 -> m_rowData.get(rowIndex - 1).m_rowIndex = (Integer) value;
             case 1 -> m_rowData.get(rowIndex - 1).m_whiteMove = (String) value;

@@ -190,7 +190,6 @@ public class PositionEvaluationController{
                 score -= (white_pawns_on_white_squares - white_pawns_on_black_squares) * 12;
             else score += (white_pawns_on_white_squares - white_pawns_on_black_squares) * 12;
         }
-        System.out.println(score);
         return score;
     }
 
