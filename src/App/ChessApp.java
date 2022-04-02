@@ -132,8 +132,10 @@ public class ChessApp extends JPanel{
             switch(((JButton) e.getSource()).getText()){
                 case MULTI_PLAYER -> newDialog = new PlayWithFriendDialog();
                 case SINGLE_PLAYER -> newDialog = new PlayWithComputerDialog();
-                //case READ_FROM -> readFromFile();
-                // return;
+                case READ_FROM -> {
+                    readFromFile();
+                    return;
+                }
                 case SAVE_TO -> {
                     saveToFile();
                     return;
@@ -182,10 +184,31 @@ public class ChessApp extends JPanel{
             JOptionPane.showMessageDialog(null, "Game state saved to: " +
                                                 ChessApp.class.getResource("/game_saved.txt").getPath(), "Save",
                                           JOptionPane.INFORMATION_MESSAGE);
-        }catch(FileNotFoundException e){
+        }catch(IOException e){
             JOptionPane.showMessageDialog(null, "File not found", "Error",
                                           JOptionPane.ERROR_MESSAGE);
         }
     }
 
+    private static void readFromFile(){
+        InputStream is = null;
+        try{
+            StringBuilder builder = new StringBuilder();
+            File file = new File(ChessApp.class.getResource("/game_saved.txt").getFile());
+            is = new FileInputStream(file);
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            String line;
+            while((line = br.readLine()) != null)
+                builder.append(line + System.lineSeparator());
+            createGameFromPNG(builder);
+        }catch(IOException e){
+
+        }
+    }
+
+    private static void createGameFromPNG(StringBuilder builder){
+        String png = builder.toString();
+
+        System.out.println(png);
+    }
 }

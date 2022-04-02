@@ -7,7 +7,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.lang.reflect.Array;
 import java.util.*;
 
 public class GameLogicController implements ActionListener{
@@ -75,6 +74,7 @@ public class GameLogicController implements ActionListener{
         m_canPlay = true;
         m_colorToMove = PieceAttributes.Color.WHITE;
         m_gameType = gameType;
+        m_cache = new GameStateCache();
         handleGameState();
 
         if(timePerSide == 0 && gameType == GameType.SINGLE){
@@ -108,11 +108,14 @@ public class GameLogicController implements ActionListener{
             m_isPseudoMoving = false;
             handleGameState();
         }
-        //long start = System.currentTimeMillis();
-        //System.out.println("Moves: " + generateMoves(6));
-        //long end = System.currentTimeMillis();
-        //System.out.println("Time passed: " + (end - start));
-        handleGameState();
+        long start = System.currentTimeMillis();
+        isCheckedCalled = 0;
+        //System.out.println("Moves: " + generateMoves(5));
+        long end = System.currentTimeMillis();
+        System.out.println("Time passed: " + (end - start));
+        System.out.println(isCheckedCalled);
+        System.out.println(possibleMovesCalled);
+        //handleGameState();
     }
 
 
@@ -246,6 +249,7 @@ public class GameLogicController implements ActionListener{
         for(int i = 0; i < 8; ++i){
             for(int j = 0; j < 8; ++j){
                 m_board.m_boardSquares[i][j].setBackground(m_board.m_boardSquares[i][j].getColor());
+                m_board.m_boardSquares[i][j].setSelected(false);
             }
         }
     }
@@ -335,7 +339,6 @@ public class GameLogicController implements ActionListener{
     private Move movePiece(Piece pieceToMove, BoardSquare fromSquare, BoardSquare toSquare){
         if(fromSquare == toSquare)
             return null;
-
         Move move;
         if((move = isSpecialMove(pieceToMove, fromSquare, toSquare)) != null){
             return move;
@@ -604,6 +607,7 @@ public class GameLogicController implements ActionListener{
     protected void handleGameState(){
         m_piecesToMove.clear();
         Pos kingPos = m_board.findKingPos(m_colorToMove);
+        //Pos kingPos = new Pos(0, 4);
         m_gameState = checkForChecks(kingPos);
         // Make enpassant impossible for last moved pawn
         //        if(m_moveHistory.size() > 1 && m_moveHistory.get(m_moveHistory.size() - 2).getMovedPiece().getType() == PieceAttributes.Type.PAWN)
@@ -697,18 +701,23 @@ public class GameLogicController implements ActionListener{
      *
      * @param piece piece to move
      * @param king  king that might become under attack
-     *
      * @return true if moving a piece is possible, false otherwise
      */
+    int isCheckedCalled = 0;
+    int possibleMovesCalled = 0;
+
     private boolean isChecked(Piece piece, King king){
         ArrayList<Pos> possibleMoves = piece.calculatePossibleMoves(m_board.m_boardSquares);
+        if(possibleMoves.size() == 0)
+            return true;
+        ++isCheckedCalled;
         int legalMovesCount = 0;
-
         // Check if removing the piece will put king in danger
         Pos piecePos = piece.getPos();
         if(piece.getType() != PieceAttributes.Type.KING){
             m_board.m_boardSquares[piecePos.row()][piecePos.col()].setPiece(null);
             if(king.isKingSafe(m_board.m_boardSquares)){
+                ++possibleMovesCalled;
                 m_board.m_boardSquares[piecePos.row()][piecePos.col()].setPiece(piece);
                 for(Pos move : possibleMoves){
                     m_piecesToMove.add(new Pair<>(piece, move));
@@ -718,7 +727,6 @@ public class GameLogicController implements ActionListener{
             }
             m_board.m_boardSquares[piecePos.row()][piecePos.col()].setPiece(piece);
         }
-
         for(Pos move : possibleMoves){
             BoardSquare fromSquare = m_board.m_boardSquares[piece.getPos().row()][piece.getPos().col()];
             BoardSquare toSquare = m_board.m_boardSquares[move.row()][move.col()];
@@ -736,7 +744,7 @@ public class GameLogicController implements ActionListener{
     }
 
     private void makeBestMove(){
-        m_cache = new GameStateCache();
+        //m_cache = new GameStateCache();
         ComputerMove bestMove = null;
         int depth = m_engineDepth;
 
@@ -752,7 +760,6 @@ public class GameLogicController implements ActionListener{
 
         handleGameState();
 
-        sortPossibleMoves();
         ArrayList<Pair<Piece, Pos>> possibleMoves = new ArrayList<>(m_piecesToMove);
 
         for(Pair<Piece, Pos> move : possibleMoves){
@@ -813,7 +820,6 @@ public class GameLogicController implements ActionListener{
         }
 
         handleGameState();
-        sortPossibleMoves();
         //System.out.println(m_piecesToMove.size());
         m_isPseudoMoving = true;
         ArrayList<Pair<Piece, Pos>> possibleMoves = new ArrayList<>(m_piecesToMove);
@@ -854,6 +860,7 @@ public class GameLogicController implements ActionListener{
                 beta = Math.min(beta, ev);
             }
             if(beta <= alpha){
+                System.out.println("PRUNED!");
                 break;
             }
         }
@@ -861,35 +868,6 @@ public class GameLogicController implements ActionListener{
         return best;
     }
 
-    public void sortPossibleMoves(){
-        double[] scores = new double[m_piecesToMove.size()];
-        for(int i = 0; i < scores.length; ++i){
-            Piece pieceToMove = m_piecesToMove.get(i).getFirst();
-            Pos pos = m_piecesToMove.get(i).getSecond();
-            m_isPseudoMoving = true;
-            Move m = movePiece(pieceToMove, m_board.m_boardSquares[pieceToMove.getPos().row()][pieceToMove.getPos().col()],
-                               m_board.m_boardSquares[pos.row()][pos.col()]);
-            scores[i] = PositionEvaluationController.getRating(m_board, m_gameState, m_colorToMove);
-            unmakeMove(m);
-        }
-
-        double[] scoresSorted = Arrays.copyOf(scores, scores.length);
-        Arrays.sort(scoresSorted);
-        //        int i1 = scores.length - Math.min(5, scores.length);
-        //        int from = m_colorToMove == PieceAttributes.Color.WHITE ? i1 : 0;
-        //        int to = m_colorToMove == PieceAttributes.Color.WHITE ? scores.length : Math.min(scores.length, 5);
-        //        double[] scoresRanged = Arrays.copyOfRange(scoresSorted, from,
-        //        to);
-
-        ArrayList<Pair<Piece, Pos>> bestMoves = new ArrayList<>();
-        for(int i = 0; i < scores.length; ++i){
-            double score = scores[i];
-            int index = Arrays.binarySearch(scoresSorted, score);
-            if(index < 0 || index >= scores.length) continue;
-            bestMoves.add(m_piecesToMove.get(index));
-        }
-        m_piecesToMove = bestMoves;
-    }
 
     /** Checks whether one of timers has stopped and stops the game if so **/
     private final javax.swing.Timer m_gameTimer = new javax.swing.Timer(100, e -> {
