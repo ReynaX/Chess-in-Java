@@ -21,8 +21,6 @@ public class GameLogicController implements ActionListener{
     /** Current clicked square(always has a piece) */
     private BoardSquare m_boardSquareClicked;
 
-    /** Move history */
-    private final ArrayList<Move> m_moveHistory = new ArrayList<>();
     /** Indicates whether current move is castling. Needed for printing move history */
     private boolean m_isCastling = false;
     /** Indicates the state of a current chess game (NONE, CHECK, MATE, STALEMATE) */
@@ -145,6 +143,7 @@ public class GameLogicController implements ActionListener{
         JOptionPane.showMessageDialog(null, message);
     }
 
+    /** Checks if game is finished if both players don't have enough material to checkmate the opponent */
     private boolean checkForInsufficientMaterial(){
         int blackMaterial = 0, whiteMaterial = 0;
         int blackKnightsAndBishops = 0, whiteKnightsAndBishops = 0;
@@ -355,7 +354,6 @@ public class GameLogicController implements ActionListener{
         else m_colorToMove = PieceAttributes.Color.WHITE;
 
         if(!m_isCastling && !m_isPseudoMoving){
-            m_moveHistory.add(move);
             changeRunningTimer();
             fiftyMoveRule(pieceToMove, capturedPiece != null);
             createMoveNotation(move, false, capturedPiece != null);
@@ -364,7 +362,7 @@ public class GameLogicController implements ActionListener{
     }
 
     /**
-     * <a href="">Enpassant</a>
+     * <a href="https://en.wikipedia.org/wiki/En_passant">Enpassant</a>
      **/
     private Move enpassantMove(Piece pawn, BoardSquare fromSquare, BoardSquare toSquare){
         int direction = -pawn.getColor().getValue();
@@ -380,7 +378,6 @@ public class GameLogicController implements ActionListener{
 
         Move move = new Move(pawn, capturedPawn, fromSquare.getPos(), Move.MoveType.ENPASSANT);
         if(!m_isPseudoMoving){
-            m_moveHistory.add(move);
             changeRunningTimer();
             fiftyMoveRule(pawn, true);
             createMoveNotation(move, false, true);
@@ -418,7 +415,6 @@ public class GameLogicController implements ActionListener{
 
         Move move = new Move(king, rook, kingPos, Move.MoveType.CASTLING);
         if(!m_isPseudoMoving){
-            m_moveHistory.add(move);
             changeRunningTimer();
             fiftyMoveRule(king, false);
             createMoveNotation(move, diff > 0, false);
@@ -426,6 +422,11 @@ public class GameLogicController implements ActionListener{
         return move;
     }
 
+    /**
+     * Moves pawn to an end row and promotes itself into a queen
+     * Changes color of player to move and stops the current playing timer.
+     * Calls <code>createMoveNotation</code> method.
+     */
     private Move promotionMove(Piece pawnToMove, BoardSquare fromSquare, BoardSquare toSquare){
         Piece pieceCaptured = toSquare.getPiece();
 
@@ -441,7 +442,6 @@ public class GameLogicController implements ActionListener{
         //System.out.println(m_board);
         Move move = new Move(pawnToMove, pieceCaptured, fromSquare.getPos(), Move.MoveType.PROMOTION);
         if(!m_isPseudoMoving){
-            m_moveHistory.add(move);
             changeRunningTimer();
             fiftyMoveRule(pawnToMove, pieceCaptured != null);
             createMoveNotation(move, false, pieceCaptured != null);
@@ -465,7 +465,6 @@ public class GameLogicController implements ActionListener{
 
         if(m_colorToMove == PieceAttributes.Color.WHITE) m_colorToMove = PieceAttributes.Color.BLACK;
         else m_colorToMove = PieceAttributes.Color.WHITE;
-
 
         BoardSquare fromSquare = m_board.m_boardSquares[initialPos.row()][initialPos.col()],
                 toSquare;
@@ -521,9 +520,9 @@ public class GameLogicController implements ActionListener{
      * history panel. The function is called after the move has been performed so the piece that last moved is now on
      * <code>toSquare</code> square. Function calls <code>handleGameState</code>.
      * <a href="https://en.wikipedia.org/wiki/Algebraic_notation_(chess)"> Algebraic notation</a>
-     * (kinda ugly but works B))
+     * (kinda ugly but works :-))
      *
-     * @param move
+     * @param move         object that contains information about given move
      * @param isLongCastle true if the last move was long castling and isCastling is true, false otherwise
      * @param didCapture   true if toSquare contained a piece
      */
@@ -607,11 +606,7 @@ public class GameLogicController implements ActionListener{
     protected void handleGameState(){
         m_piecesToMove.clear();
         Pos kingPos = m_board.findKingPos(m_colorToMove);
-        //Pos kingPos = new Pos(0, 4);
         m_gameState = checkForChecks(kingPos);
-        // Make enpassant impossible for last moved pawn
-        //        if(m_moveHistory.size() > 1 && m_moveHistory.get(m_moveHistory.size() - 2).getMovedPiece().getType() == PieceAttributes.Type.PAWN)
-        //            ((Pawn) m_moveHistory.get(m_moveHistory.size() - 2).getMovedPiece()).setEnpassant(false);
 
         for(int i = 0; i < 8; ++i){
             for(int j = 0; j < 8; ++j){
@@ -744,7 +739,7 @@ public class GameLogicController implements ActionListener{
     }
 
     private void makeBestMove(){
-        //m_cache = new GameStateCache();
+        m_cache = new GameStateCache();
         ComputerMove bestMove = null;
         int depth = m_engineDepth;
 

@@ -31,7 +31,7 @@ public abstract class Piece{
         this.m_moveCount = other.m_moveCount;
         this.m_pos = new Pos(other.m_pos.row(), other.m_pos.col());
     }
-
+    
     private boolean isFirstMove(){
         switch(m_attrib.getType()){
             case PAWN -> {

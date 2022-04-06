@@ -15,18 +15,15 @@ import java.util.Objects;
 public class ChessApp extends JPanel{
     private final static String SINGLE_PLAYER = "Play with a computer";
     private final static String MULTI_PLAYER = "Play with a friend";
-    private final static String READ_FROM = "Read game state from file";
-    private final static String SAVE_TO = "Save gamestate to fil";
+    private final static String SAVE_TO = "Save game state to file";
 
     private static final ChessMoveOrderModel m_moveOrderModel = new ChessMoveOrderModel();
-    //private static final String feNotation = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
     private static final Board m_board = new Board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
     public static JButton m_playWithFriendButton;
     public static JButton m_singlePlayerMode;
     public static JButton m_saveGameButton;
-    public static JButton m_readGameButton;
 
     public ChessApp(){
         this.setLayout(new GridBagLayout());
@@ -39,16 +36,14 @@ public class ChessApp extends JPanel{
         m_singlePlayerMode = createButton(SINGLE_PLAYER, new Color(0x2f2f2f));
         m_playWithFriendButton = createButton(MULTI_PLAYER, new Color(0x2f2f2f));
         m_saveGameButton = createButton(SAVE_TO, new Color(0x2f2f2f));
-        m_readGameButton = createButton(READ_FROM, new Color(0x2f2f2f));
 
         JPanel menuPanel = new JPanel(new BorderLayout());
-        JPanel buttonPanel = new JPanel(new GridLayout(4, 1));
+        JPanel buttonPanel = new JPanel(new GridLayout(3, 1));
         JPanel moveOrderPanel = new JPanel();
 
         buttonPanel.add(m_singlePlayerMode);
         buttonPanel.add(m_playWithFriendButton);
         buttonPanel.add(m_saveGameButton);
-        buttonPanel.add(m_readGameButton);
 
         JTable moveOrderTable = new JTable();
         moveOrderTable.setTableHeader(null);
@@ -126,16 +121,11 @@ public class ChessApp extends JPanel{
     public Board getBoard(){return m_board;}
 
     private static final ActionListener actionListener = e -> {
-
         if(e.getSource() instanceof JButton){
             JDialog newDialog = null;
             switch(((JButton) e.getSource()).getText()){
                 case MULTI_PLAYER -> newDialog = new PlayWithFriendDialog();
                 case SINGLE_PLAYER -> newDialog = new PlayWithComputerDialog();
-                case READ_FROM -> {
-                    readFromFile();
-                    return;
-                }
                 case SAVE_TO -> {
                     saveToFile();
                     return;
@@ -175,10 +165,14 @@ public class ChessApp extends JPanel{
         return "*";
     }
 
+    /**
+     * Save game moves and game state to file in Portable Game Notation
+     * (<a href="https://www.chess.com/terms/chess-pgn">PNG</a>)
+     */
     private static void saveToFile(){
         try(PrintWriter writer = new PrintWriter(
                 Objects.requireNonNull(ChessApp.class.getResource("/game_saved.txt")).getPath())){
-            String notation = m_moveOrderModel.convertToPNG();
+            String notation = m_moveOrderModel.convertToPGN();
             notation += addGameResult();
             writer.print(notation);
             JOptionPane.showMessageDialog(null, "Game state saved to: " +
@@ -190,25 +184,4 @@ public class ChessApp extends JPanel{
         }
     }
 
-    private static void readFromFile(){
-        InputStream is = null;
-        try{
-            StringBuilder builder = new StringBuilder();
-            File file = new File(ChessApp.class.getResource("/game_saved.txt").getFile());
-            is = new FileInputStream(file);
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
-            String line;
-            while((line = br.readLine()) != null)
-                builder.append(line + System.lineSeparator());
-            createGameFromPNG(builder);
-        }catch(IOException e){
-
-        }
-    }
-
-    private static void createGameFromPNG(StringBuilder builder){
-        String png = builder.toString();
-
-        System.out.println(png);
-    }
 }

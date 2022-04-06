@@ -17,8 +17,8 @@ public class ChessMoveOrderModel extends AbstractTableModel{
 
         @Override
         public String toString(){
-            System.out.println(m_rowIndex + "." + m_whiteMove + " " + m_blackMove + " ");
-            return m_rowIndex + "." + m_whiteMove + " " + m_blackMove + " ";
+            //System.out.println(m_rowIndex + ". " + m_whiteMove + " " + m_blackMove + " ");
+            return m_rowIndex + ". " + m_whiteMove + " " + m_blackMove + " ";
         }
     }
 
@@ -75,18 +75,19 @@ public class ChessMoveOrderModel extends AbstractTableModel{
         }
     }
 
-    private String rowToPng(int row){
+    private String rowToPGN(int row){
         if(row >= getRowCount())
             return "";
         return m_rowData.get(row).toString();
     }
 
-    public String convertToPNG(){
-        StringBuilder png = new StringBuilder();
+    /** Retruns PGN from current game state */
+    public String convertToPGN(){
+        StringBuilder pgn = new StringBuilder();
         int rows = this.getRowCount();
         for(int row = 0; row < rows; ++row){
-            png.append(rowToPng(row));
+            pgn.append(rowToPGN(row));
         }
-        return png.toString();
+        return pgn.toString();
     }
 }
