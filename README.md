@@ -11,7 +11,7 @@ contains all these rules:
 * Promotion (only to Queen)
 * 50-moves rule
 * En passant
-* Saving the game state in PNG
+* Saving the game state in PGN
 
 I've made this project to learn Java, get an assignment in the college and hopefully increase my future chances of
 getting a job. The project needs a lot of polishing like making the better and faster calculations of computer moves, allowing computer to finish the game, 
