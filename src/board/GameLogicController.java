@@ -611,7 +611,7 @@ public class GameLogicController implements ActionListener{
         for(int i = 0; i < 8; ++i){
             for(int j = 0; j < 8; ++j){
                 Piece piece = m_board.m_boardSquares[i][j].getPiece();
-                if(piece != null && piece.getType() == PieceAttributes.Type.PAWN)
+                if(piece != null && piece.getType() == PieceAttributes.Type.PAWN && piece.getColor() == m_colorToMove)
                     ((Pawn) piece).setEnpassant(false);
             }
         }
